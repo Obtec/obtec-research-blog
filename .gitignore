@@ -7,20 +7,48 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies
 node_modules
+.pnp
+.pnp.js
+
+# Build & TypeScript outputs
 dist
 dist-ssr
+build
+*.tsbuildinfo
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+# Testing & Coverage
+coverage
+.nyc_output
+
+# Environment variables
+.env
+.env.*
+!.env.example
 *.local
 
-# Editor directories and files
+# Deployment & Cloud
+.vercel
+
+# Editor & IDE directories
 .vscode/*
 !.vscode/extensions.json
 .idea
-.DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-.vercel
-.env*
+
+# OS & Cloud Drive generated files
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+Thumbs.db
+Icon?
+ehthumbs.db
+
