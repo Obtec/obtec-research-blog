@@ -11,372 +11,418 @@ export const CATEGORIES = [
 
 export const MOCK_PAPERS: Paper[] = [
   {
-    id: 'designing-failover-openai-providers',
-    slug: 'designing-failover-across-model-providers',
+    id: 'hypervisor-for-agora-formal-verification',
+    slug: 'formal-verification-research-blog',
     type: 'report',
-    title: 'Designing failover across OpenAI model providers',
-    subtitle: 'Why direct OpenAI access matters for previews and critical workloads.',
-    // Warm peach/coral abstract gradient artwork matching Screenshot 2026-10-17 at 2.14.49 AM.png
-    coverImage: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1600&q=85',
-    authors: [
-      { name: 'Oliver Steffmann', affiliation: 'OpenAI Infrastructure Team', role: 'Author' },
-      { name: 'Vik Bomma', affiliation: 'OpenAI Solutions Engineering', role: 'Author' },
-      { name: '이인수', affiliation: 'Obtec Systems Lab', role: 'Co-Author' },
-    ],
-    publishedDate: 'Oct 14, 2026',
-    journalOrConference: 'OpenAI Engineering & Obtec Systems Joint Technical Report',
-    doi: '10.48550/OBTEC.2026.1014',
-    category: 'API',
-    tags: ['API', 'Failover', 'Codex', 'High Availability', 'Architecture'],
-    readTimeMinutes: 8,
-    citationCount: 52,
-    viewsCount: 6800,
-    downloadCount: 1420,
-    featured: true,
-    abstract: `When a business depends on an AI workflow, even a short provider outage can delay decisions or interrupt services. We've been working with financial services customers building agentic applications and cybersecurity workflows with OpenAI models. This post explains how we approach production routing and recovery for critical workloads, using a read-only fraud assessment in a payments workflow as a running example.
-
-Here, first-party (1P) means the direct OpenAI API; third-party (3P) means OpenAI models accessed through a cloud provider, regardless of where the application runs. We'll cover the value of direct access for preview models and features, how workload needs and private connectivity shape route choice, and which operations can safely fail over. We'll then provide a Codex prompt for implementing the policy in an existing gateway and explain what to validate before enabling failover.`,
-    keyContributions: [
-      'Active-active failover architecture between direct OpenAI API (1P) and cloud-hosted model endpoints (3P)',
-      'Sub-350ms automatic failover recovery time objective (RTO) with zero side-effect degradation',
-      'Declarative gateway routing policies for agentic financial transactions and security auditing',
-    ],
-    pdfDownloadName: 'OBTEC-OpenAI-Failover-Routing.pdf',
-    bibtex: `@article{steffmann2026failover,
-  title={Designing failover across OpenAI model providers},
-  author={Steffmann, Oliver and Bomma, Vik and Lee, Insoo},
-  journal={OpenAI Engineering & Obtec Systems},
-  year={2026}
-}`,
-    apaCitation: 'Steffmann, O., Bomma, V., & Lee, I. (2026). Designing failover across OpenAI model providers. OpenAI Engineering.',
-    sections: [
-      {
-        id: 'why-use-both-routes',
-        title: 'Why use both routes?',
-        level: 1,
-        content: `Direct first-party (1P) OpenAI API access enables organizations to immediately leverage preview frontier models, structured outputs, real-time audio/speech streaming, and experimental tool-use capabilities the day they are announced. At the same time, third-party (3P) managed cloud providers allow enterprises with existing sovereign data requirements, enterprise discount commitments, or isolated compliance envelopes to run workloads inside their cloud tenants.
-
-By establishing an active-active dual route, critical agentic services avoid single points of failure. Rather than treating 3P as a passive standby that incurs cold-start latencies, requests are routed proportionally based on workload characteristics and operational health telemetry.`
-      },
-      {
-        id: 'planned-routing-and-failover',
-        title: 'Planned routing and failover',
-        level: 1,
-        content: `Planned routing uses deterministic routing rules based on model capability tiers and tenant sensitivity. For instance, sensitive payment transaction data can be designated for regional private endpoints, while fast reasoning extraction routes through the lowest-latency edge endpoint.
-
-When anomalies occur—such as upstream connection resets, surging P99 response latencies ($>1,500\\text{ms}$), or consecutive HTTP 503 Service Unavailable responses—the routing layer dynamically trips its circuit breaker and sheds non-essential traffic to the alternate provider.`
-      },
-      {
-        id: 'where-the-router-fits',
-        title: 'Where the router fits',
-        level: 1,
-        content: `The failover router operates at the ingress gateway layer (such as Envoy, Kong, or an internal reverse proxy) rather than within individual client application code. This architecture offers three primary advantages:
-
-1. **Zero Client Changes**: Internal microservices simply send standard OpenAI SDK requests to a unified corporate endpoint (e.g. \`https://ai-gateway.internal/v1\`).
-2. **Centralized Token & Rate Limiting**: Token consumption quotas and budget caps are enforced across all model providers uniformly.
-3. **Telemetry & Audit Logging**: Request payloads, latency breakdowns, and routing decisions are systematically logged for PCI-DSS and SOC2 compliance.`
-      },
-      {
-        id: 'private-connectivity-and-route-choice',
-        title: 'Private connectivity and route choice',
-        level: 1,
-        content: `Many regulated institutions mandate that outbound internet traffic cannot carry unmasked customer account numbers or PII. For these workloads, private connectivity such as AWS PrivateLink or Azure ExpressRoute guarantees that network packets never traverse the public internet.
-
-Conversely, for low-latency batch processing or public data summaries, direct 1P connectivity over optimized Anycast edges minimizes routing hops and yields up to 40% lower time-to-first-token (TTFT).`
-      },
-      {
-        id: 'which-operations-can-fail-over',
-        title: 'Which operations can fail over?',
-        level: 1,
-        content: `Not every AI request is safe for instant automated failover. We classify operations into two distinct tiers:
-
-- **Idempotent (Safe to Fail Over)**: Read-only summarization, classification, fraud score evaluation, vector embeddings, and zero-shot entity extraction. If a timeout occurs on 1P, the gateway can replay the identical request to 3P without corrupting downstream state.
-- **Stateful (Requires Coordination)**: Long multi-turn agent sessions maintaining ephemeral server-side context, prompt caching keys, or streaming file uploads. These require session migration protocols or localized checkpoint recovery before rerouting.`
-      },
-      {
-        id: 'when-and-how-to-fail-over',
-        title: 'When and how to fail over',
-        level: 1,
-        content: `A critical mistake in failover architecture is failing over on transient HTTP 429 rate limit errors. A 429 indicates model concurrency saturation rather than an outage; failing over simultaneously can cause a thundering herd that knocks down the secondary provider as well.
-
-Instead, failover should trigger strictly on:
-1. Consecutive network connection timeouts (e.g., 3 consecutive 2,000ms TCP connect timeouts).
-2. Unhealthy synthetic canary health checks executed every 5 seconds.
-3. Sustained HTTP 5xx responses exceeding a 2% sliding error window.`
-      },
-      {
-        id: 'implement-the-failover-policy-with-codex',
-        title: 'Implement the failover policy with Codex',
-        level: 1,
-        content: `Engineering teams can rapidly generate and test gateway failover rules using Codex or agentic coding assistants. By providing the API gateway configuration schema and specifying target retry envelopes, circuit breaker decay rates, and fallback priority lists, teams can deploy validated routing filters in minutes with automated unit tests for timeout edge cases.`
-      },
-      {
-        id: 'validate-routes-and-recovery',
-        title: 'Validate routes and recovery',
-        level: 1,
-        content: `Failover mechanisms that are never exercised in production inevitably fail during genuine crises. We recommend implementing scheduled chaos experiments:
-
-- Injecting artificial 5,000ms latency on the primary provider route to confirm seamless background hedged requests.
-- Simulating DNS resolution failure to verify fallback resolution.
-- Validating that client SDKs receive seamless streaming responses even as backend provider switching takes place.`
-      },
-      {
-        id: 'who-owns-recovery',
-        title: 'Who owns recovery',
-        level: 1,
-        content: `Clear operational ownership ensures that incident response proceeds without ambiguity. Platform SRE owns gateway availability, circuit breaker thresholds, and health telemetry, while Application teams own prompt degradation strategies and fallback response definitions when both providers experience degraded capacity.`
-      },
-      {
-        id: 'conclusion',
-        title: 'Conclusion',
-        level: 1,
-        content: `Designing multi-provider failover for mission-critical AI workflows is an essential milestone in the evolution of enterprise production intelligence. By coupling first-party innovation velocity with cloud provider enterprise guarantees, businesses can build dependable, resilient AI systems that withstand disruptions without compromising performance.`
-      }
-    ],
-    references: [
-      { id: 'ref-1', label: '[1]', authors: 'OpenAI Infrastructure Team', year: 2026, title: 'High Availability Production Routing for Generative AI Workflows', venue: 'OpenAI Engineering Blog', url: 'https://openai.com/index/engineering' },
-      { id: 'ref-2', label: '[2]', authors: 'Obtec Distributed Systems Lab', year: 2026, title: 'Active-Active Gateway Circuit Breaker Patterns in Latency-Critical Microservices', venue: 'Obtec Research Technical Reports', url: 'https://obtec.org/research' }
-    ]
-  },
-  {
-    id: 'mambaformer-v3',
-    slug: 'mambaformer-v3-linear-state-space',
-    type: 'paper',
-    title: 'MambaFormer-V3: 선형 상태 공간 모델과 쿼터니언 셀프 어텐션의 융합을 통한 O(N) 초대규모 시퀀스 학습',
-    subtitle: 'O(N) Complexity Attention via State-Space Duality and Quaternion Tensor Decomposition',
+    title: '12개의 AI 에이전트와 함께 하이퍼바이저를 수학적으로 증명하기: hypervisor-for-agora 정형 검증 리서치 리포트',
+    subtitle: 'Lean 4와 Z3 SMT 솔버, 그리고 12개의 Google Gemini 3.8 Flash 자율 서브에이전트(/teamwork)를 활용한 Cloud Hypervisor 다중 테넌트 격리 플랫폼의 수학적 무결성 증명',
     coverImage: 'https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?auto=format&fit=crop&w=1600&q=85',
     authors: [
-      { name: '이인수', affiliation: 'Obtec Research AI Lab', role: 'Lead Author' },
-      { name: 'Obtec Systems Team', affiliation: 'Obtec Research', role: 'Co-Author' },
+      { name: '이인수', affiliation: 'Obtec Research', role: 'Author' },
     ],
-    publishedDate: '2026.03.28',
-    journalOrConference: 'Obtec Research Proceedings / Nature Machine Intelligence 2026',
-    doi: '10.48550/OBTEC.2026.0328',
+    publishedDate: '2026.11.06',
+    journalOrConference: 'Obtec Research Formal Verification Technical Report',
+    doi: '10.48550/OBTEC.2026.1106',
     category: '컴퓨터 과학',
-    tags: ['인공신경망', 'MambaFormer', '선형 어텐션', '초대규모 시퀀스', 'O(N)'],
-    readTimeMinutes: 12,
-    citationCount: 48,
-    viewsCount: 3420,
-    downloadCount: 890,
-    featured: false,
-    abstract: '기존 트랜스포머의 $O(N^2)$ 계산 복잡도는 수백만 토큰 규모의 긴 컨텍스트 추론에서 치명적인 메모리 병목을 유발합니다. 본 연구에서는 선택적 상태 공간 모델(Selective State Space Model)의 순환적 압축 능력과 쿼터니언 대수 공간에서의 회전 셀프 어텐션을 결합한 MambaFormer-V3 아키텍처를 제안합니다. 실험 결과, 100만 토큰 시퀀스에서 기존 트랜스포머 대비 메모리 사용량을 87% 감축하면서도 바늘 찾기(Needle-in-a-Haystack) 벤치마크 99.8% 정확도를 달성했습니다.',
+    tags: [
+      '정형 검증',
+      'Lean 4',
+      'Z3 Solver',
+      'Cloud Hypervisor',
+      'Multi-Agent',
+      'Gemini 3.8 Flash',
+    ],
+    readTimeMinutes: 15,
+    citationCount: 0,
+    viewsCount: 1,
+    downloadCount: 0,
+    featured: true,
+    abstract: `> **"테스트는 버그가 존재함을 보여줄 수 있지만, 버그가 존재하지 않음을 증명할 수는 없다."**  
+> — 에츠허르 데이크스트라 (Edsger W. Dijkstra)
+
+* **대상 프로젝트**: [\`hypervisor-for-agora\`](https://github.com/weird14446/hypervisor-for-agora) (Cloud Hypervisor 기반 VM 오케스트레이션 및 다중 테넌트 격리 환경)
+* **수행 일자**: 2026년 11월
+* **연구 및 검증 수행 AI 모델**: **Google Gemini 3.8 Flash** (메인 아키텍트 및 12개 자율 서브에이전트 전원 탑재)
+* **검증 엔진**: Lean 4 (v4.35.0 대화형 정리 증명기), Z3 Solver (v5.3.3.0 SMT 자동 논리 증명기)
+
+---
+
+클라우드 위에서 수많은 사용자의 코드(Python, C/C++, Java, Node.js, Shell)를 동시에 실행하는 멀티테넌트 샌드박스 환경에서 **'격리(Isolation)'**는 타협의 대상이 아닙니다. 단 한 번의 방화벽 규칙 실수, 단 한 번의 권한 검사 누락, 혹은 동시성 경합(Race Condition)만으로도 게스트 가상머신(VM)이 호스트 서버를 장악하거나 다른 사용자의 작업 공간을 훔쳐볼 수 있기 때문입니다.
+
+본 리서치 블로그 포스트에서는 Cloud Hypervisor(KVM) 기반의 격리 실행 플랫폼인 **\`hypervisor-for-agora\`** 프로젝트에 **정형 검증(Formal Verification)**을 도입한 전 과정을 공개합니다. 특히 최신 **Google Gemini 3.8 Flash** 모델을 기반으로 인간 연구자와 메인 AI 아키텍트가 초기 수학적 증명을 설계한 뒤, **12개의 전문화된 서브에이전트(Subagents)로 구성된 자율 멀티 에이전트 팀(\`/teamwork\`)**을 소환하여 **"우리가 만든 수학적 증명이 실제 프로덕션 코드와 단 1줄의 오차도 없이 일치하는가?"**를 치열하게 교차 감사(Audit)하고 결함을 잡아낸 생생한 과정을 대화 기록과 함께 상세히 소개합니다.`,
     keyContributions: [
-      '상태 공간 이중성(SSD)과 4차원 쿼터니언 텐서 분해를 융합한 선형 복잡도 $O(N)$ 주의 집중 레이어 설계',
-      '하드웨어 친화적 커널 퓨전(Kernel Fusion) 기법을 통한 SRAM 캐시 미스 72% 감축',
-      '1M 토큰 롱 컨텍스트 추론에서 트랜스포머 대비 4.2배 빠른 처리량 달성',
+      'Lean 4 (v4.35.0) 대화형 정리 증명기와 Z3 SMT 솔버 (v5.3.3.0)를 결합한 Targeted Dual-Engine 정형 검증으로 총 18개 핵심 보안 정리(자원 한도·상호 배제 6개, 2계층 방화벽·NAT 격리 7개, 호스트 상태 봉인 5개) 증명 완료',
+      'Google Gemini 3.8 Flash 기반 12개 자율 서브에이전트(/teamwork) 교차 감사를 통해 Lean 4 귀납적 폐포 누락, RFC 5737 문서 예약 IP 오류 및 2계층 NAT 합성 누락, 0700 vs 0755 디렉터리 권한 괴리 등 3가지 치명적 모델-코드 불일치 적발 및 교정',
+      '레드팀 챌린저의 124개 익스플로잇 쿼리 폭격(비공허성 역검증 포함)과 100,000회 무작위 상태 전이 스트레스 테스트, 클린룸 감사관의 무공리·무결성 최종 검증(VICTORY CONFIRMED) 달성',
     ],
-    pdfDownloadName: 'OBTEC-2026-MambaFormer-V3.pdf',
-    bibtex: `@article{obtec2026mambaformer,
-  title={MambaFormer-V3: Linear State-Space Attention},
-  author={Lee, Insoo and Obtec Systems Team},
-  journal={Obtec Research Publications},
-  year={2026}
-}`,
-    apaCitation: '이인수, Obtec Systems Team. (2026). MambaFormer-V3: 선형 상태 공간 모델과 쿼터니언 셀프 어텐션의 융합. Obtec Research Proceedings.',
-    sections: [
-      {
-        id: 'sec-mamba-intro',
-        title: '서론 및 연구 배경 (Introduction)',
-        level: 1,
-        content: '인공지능 모델의 컨텍스트 윈도우 확장은 차세대 과학 추론과 복합 소프트웨어 합성의 핵심 전제조건입니다. 그러나 표준 어텐션 매트릭스 $A = \\mathrm{softmax}(QK^T / \\sqrt{d_k})$는 시퀀스 길이 $N$에 대해 $O(N^2)$의 메모리를 점유하므로 한계에 직면해 있습니다.'
-      },
-      {
-        id: 'sec-quaternion-ssm',
-        title: '선형 상태 공간 모델과 쿼터니언 대수',
-        level: 1,
-        content: '본 논문에서는 연속 시간 상태 방정식 $\\dot{h}(t) = Ah(t) + Bx(t)$를 쿼터니언 군 $\\mathbb{H}$ 상에서 이산화(Discretization)하여 다차원 피처 상관관계를 단일 스캔으로 연산하는 방식을 확립했습니다.'
-      },
-      {
-        id: 'sec-hybrid-kernel',
-        title: '하드웨어 친화적 커널 퓨전과 계산 복잡도',
-        level: 1,
-        content: 'SRAM 캐시 미스를 최소화하기 위해 FlashAttention의 타일링 기법을 쿼터니언 실수/허수부 행렬 곱셈에 맞춤 설계했습니다. GPU HBM과의 데이터 교환 횟수를 대폭 줄여 전력 대비 연산 효율을 극대화했습니다.'
-      },
-      {
-        id: 'sec-empirical-eval',
-        title: '실험 결과 및 벤치마크 분석',
-        level: 1,
-        content: '100만 토큰 길이의 Needle-in-a-Haystack 테스트에서 MambaFormer-V3는 검색 정확도 99.8%를 유지하며, 표준 LLaMA 구조 대비 메모리 소비량을 87% 절감하는 쾌거를 달성했습니다.'
-      },
-      {
-        id: 'sec-mamba-conclusion',
-        title: '결론 및 향후 연구 과제',
-        level: 1,
-        content: '선형 상태 공간 모델과 대수적 어텐션 메커니즘의 결합은 초대규모 추론 비용을 획기적으로 낮추는 차세대 파운데이션 아키텍처의 강력한 초석이 될 것입니다.'
-      }
-    ],
-    references: []
-  },
-  {
-    id: 'hbm4-hybrid-bonding',
-    slug: 'hbm4-16hi-hybrid-bonding-thermodynamics',
-    type: 'report',
-    title: '16단 적층 HBM4 인터포저 하이브리드 본딩 및 2,048-bit 마이크로범프 열역학적 신뢰성 평가',
-    subtitle: 'Copper-to-Copper Direct Hybrid Bonding Reliability for Next-Gen AI Accelerators',
-    coverImage: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=1600&q=85',
-    authors: [
-      { name: '이인수', affiliation: 'Obtec Semiconductor Research Center', role: 'Lead Researcher' },
-      { name: '고급 패키징 연구팀', affiliation: 'Obtec Research', role: 'Co-Author' },
-    ],
-    publishedDate: '2026.03.14',
-    journalOrConference: 'Obtec Advanced Semiconductor Technical Report Vol. 8',
-    doi: '10.48550/OBTEC.2026.0314',
-    category: '반도체',
-    tags: ['반도체', 'HBM4', '하이브리드 본딩', '인터포저', '열역학'],
-    readTimeMinutes: 10,
-    citationCount: 31,
-    viewsCount: 2890,
-    downloadCount: 740,
-    abstract: '차세대 거대언어모델 학습 가속기를 위한 16-Hi 적층 HBM4의 2,048-bit 와이드 버스 인터페이스 환경에서, Cu-Cu 다이렉트 하이브리드 본딩(Direct Hybrid Bonding)과 초박막 실리콘 인터포저의 열-기계적 변형(Warpage) 및 신뢰성을 시뮬레이션하고 실측 검증한 기술 보고서입니다.',
-    keyContributions: [
-      '16단 적층 고대역폭 메모리의 3.2TB/s 대역폭 달성을 위한 2,048-bit 버스 배선 모델 수립',
-      'Cu-Cu 다이렉트 본딩 접합부의 250°C 열 사이클링 피로 저항성 수치해석 완료',
-      '기존 마이크로범프 대비 접합 피치를 10μm 이하로 축소하여 기생 인덕턴스 65% 저감',
-    ],
-    pdfDownloadName: 'OBTEC-2026-HBM4-Report.pdf',
-    bibtex: `@techreport{obtec2026hbm4,
-  title={HBM4 16-Hi Hybrid Bonding Reliability},
-  author={Lee, Insoo and Packaging Lab},
-  institution={Obtec Semiconductor Research Center},
-  year={2026}
-}`,
-    apaCitation: '이인수, 고급 패키징 연구팀. (2026). 16단 적층 HBM4 인터포저 하이브리드 본딩 열역학적 신뢰성 평가. Obtec Advanced Semiconductor Technical Report.',
-    sections: [
-      {
-        id: 'sec-hbm4-overview',
-        title: 'HBM4 차세대 패키징 개요',
-        level: 1,
-        content: '인공지능 가속기의 연산 처리량이 지수적으로 급증함에 따라 메모리 벽(Memory Wall) 현상을 타개하기 위한 2,048-bit 베이스 다이 직결 HBM4 구조가 필수적으로 요구되고 있습니다.'
-      },
-      {
-        id: 'sec-hybrid-thermodynamics',
-        title: 'Cu-Cu 다이렉트 하이브리드 본딩 수치해석',
-        level: 1,
-        content: '마이크로범프를 배제하고 산화막과 구리 패드를 직접 결합하는 하이브리드 본딩 공정에서 열팽창 계수(CTE) 불일치로 인한 전단 응력을 유한요소해석(FEA)을 통해 정밀 모델링했습니다.'
-      },
-      {
-        id: 'sec-warpage-reliability',
-        title: '열 사이클링 피로 저항성 및 휨(Warpage) 측정',
-        level: 1,
-        content: '-40°C에서 +125°C에 이르는 1,500회 열충격 사이클 시험 후에도 접합 계면의 균열이나 보이드 형성 없이 안정적인 옴(Ohmic) 접촉 저항을 유지했습니다.'
-      },
-      {
-        id: 'sec-hbm4-conclusion',
-        title: '양산성 평가 및 결론',
-        level: 1,
-        content: '초박형 CMP 연마 공정 최적화를 통해 수율 94% 이상을 달성할 수 있는 공정 마진을 확보했으며, 향후 차세대 가속기 상용화에 결정적 토대를 마련했습니다.'
-      }
-    ],
-    references: []
-  },
-  {
-    id: 'symplectic-nbody-dynamics',
-    slug: 'symplectic-integrator-nbody-chaos-dynamics',
-    type: 'paper',
-    title: '고차 심플렉틱 적분기를 활용한 외계 행성계 다체(N-Body) 중력 공명과 카오스 궤도 안정성 해석',
-    subtitle: 'Symplectic Geometric Integrations for Millennial Orbital Resonance in Multi-Planet Systems',
-    coverImage: 'https://images.unsplash.com/photo-1618005198919-d3d4b5a92ead?auto=format&fit=crop&w=1600&q=85',
-    authors: [
-      { name: '이인수', affiliation: 'Obtec Theoretical Physics Group', role: 'Author' },
-    ],
-    publishedDate: '2026.02.21',
-    journalOrConference: 'Obtec Physical Review Letters 2026',
-    doi: '10.48550/OBTEC.2026.0221',
-    category: '물리학',
-    tags: ['물리학', '천체역학', '심플렉틱 적분', 'N체 시뮬레이션', '카오스'],
-    readTimeMinutes: 14,
-    citationCount: 64,
-    viewsCount: 4120,
-    downloadCount: 1120,
-    abstract: '태양계 및 외계 행성계의 백만 년 단위 장기 궤도 안정성을 보존하기 위해 해밀토니안 보존 법칙을 오차 없이 준수하는 6차 심플렉틱 룽게-쿠타 적분기(Symplectic Runge-Kutta)를 개발했습니다. 라그랑주 삼체 문제의 궤도 공명 붕괴 임계점을 해석학적으로 도출했습니다.',
-    keyContributions: [
-      '심플렉틱 기하학(Symplectic Geometry)에 기반한 위상 공간 체적 보존 적분 알고리즘 구현',
-      '행성 간 3:2 및 2:1 평균 운동 공명(MMR) 영역에서의 카오스 확산 시간 계산',
-      '에너지 오차 누적을 $10^{-12}$ 수준으로 억제하며 수억 년 단위 궤도 적분 가속',
-    ],
-    pdfDownloadName: 'OBTEC-2026-Symplectic-Nbody.pdf',
-    bibtex: `@article{obtec2026symplectic,
-  title={Symplectic Integrators for Exoplanetary Chaos},
+    pdfDownloadName: 'OBTEC-2026-Hypervisor-For-Agora-Formal-Verification.pdf',
+    bibtex: `@techreport{lee2026hypervisor,
+  title={12개의 AI 에이전트와 함께 하이퍼바이저를 수학적으로 증명하기: hypervisor-for-agora 정형 검증 리서치 리포트},
   author={Lee, Insoo},
-  journal={Obtec Physical Review},
-  year={2026}
+  institution={Obtec Research},
+  year={2026},
+  month={11}
 }`,
-    apaCitation: '이인수. (2026). 고차 심플렉틱 적분기를 활용한 외계 행성계 다체 중력 공명과 카오스 궤도 안정성 해석. Obtec Physical Review.',
+    apaCitation: '이인수. (2026). 12개의 AI 에이전트와 함께 하이퍼바이저를 수학적으로 증명하기: hypervisor-for-agora 정형 검증 리서치 리포트. Obtec Research.',
     sections: [
       {
-        id: 'sec-hamiltonian',
-        title: '해밀토니안 역학 및 위상 공간 보존',
+        id: '1-배경-왜-일반-테스트로는-부족한가',
+        title: '1. 배경: 왜 일반 테스트로는 부족한가?',
         level: 1,
-        content: '천체 다체계의 운동은 정준 변수 $(q, p)$에 대해 해밀토니안 $H(q, p) = T(p) + V(q)$로 기술되며, 수치 적분 시 심플렉틱 2차 형식 $\\omega = \\sum dq_i \\wedge dp_i$가 반드시 보존되어야 합니다.'
+        content: `[\`hypervisor-for-agora\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/README.md)는 각 협업 캔버스(Canvas)마다 독립된 **Cloud Hypervisor v54.0** 마이크로 VM을 생성하여 사용자 코드를 격리 실행하는 시스템입니다. 이 시스템이 지켜야 하는 핵심 보안 약속은 크게 세 가지입니다:
+
+1. **자원 한도 및 상호 배제** ([\`runtime/manager.py\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/runtime/manager.py)): 호스트 서버가 다운되지 않도록 동시에 실행되는 VM은 최대 4개($\\text{MAX\\_ACTIVE} = 4$), 총 메모리는 $8192\\,\\text{MiB}$, 총 CPU는 $8\\,\\text{vCPU}$를 절대 넘지 않아야 하며, 하나의 캔버스에 두 개의 VM이 중복 실행되어 데이터가 깨지는 일이 없어야 합니다.
+2. **2계층 네트워크 완전 격리** ([\`runtime/network.py\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/runtime/network.py)): VM 내부에서 외부 인터넷(NAT)으로 나가는 것은 허용하되, 호스트 내부망(RFC 1918 사설 IP), 클라우드 메타데이터 서버(\`169.254.169.254\`), 루프백(\`127.0.0.1\`), 그리고 **옆방에 있는 다른 사용자의 캔버스 VM**으로는 단 1바이트의 패킷도 도달할 수 없어야 합니다.
+3. **호스트 파일시스템 및 권한 봉인** ([\`scripts/security.py\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/scripts/security.py)): 하이퍼바이저 런처는 절대 \`root\` 권한이나 Linux Capability를 가진 채 실행될 수 없으며, 심볼릭 링크(Symlink)를 통한 경로 탈출이나 잘못된 디렉터리 권한(\`0700\` 외의 권한)을 즉시 거부해야 합니다.
+
+기존에도 저장소에는 훌륭한 통합 테스트 스위트([\`tests/test_security.py\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/tests/test_security.py), [\`runtime/tests/test_network.py\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/runtime/tests/test_network.py))가 있었습니다. 하지만 일반인들에게 비유하자면, **유닛 테스트는 "문짝을 10번 발로 차보고 안 열리니 안전하다"고 결론 내리는 것**과 같습니다. IPv4 주소만 해도 $2^{32}$개(약 43억 개)이고, 출발지·목적지·포트·프로토콜·연결 상태(Conntrack)의 조합은 수경($10^{16}$) 가지가 넘습니다.
+
+이 모든 경우의 수에서 **"단 하나의 예외도 없이 절대 뚫리지 않는다"**를 보장하는 유일한 방법은, 시스템의 규칙을 수학 공식으로 바꾼 뒤 컴퓨터로 하여금 모든 경우의 수를 논리적으로 증명하게 만드는 **정형 검증(Formal Verification)**뿐입니다.`,
       },
       {
-        id: 'sec-orbital-resonance',
-        title: '외계 행성계 궤도 공명과 리아푸노프 시간',
+        id: '2-1막-인간과-gemini-38-flash-아키텍트의-전략-수립--targeted-dual-engine-정형-검증',
+        title: "2. 1막: 인간과 Gemini 3.8 Flash 아키텍트의 전략 수립 — 'Targeted Dual-Engine' 정형 검증",
         level: 1,
-        content: '인접한 거대 가스 행성 간의 3:2 공명대 진입 시 섭동 항에 의해 궤도 이심률이 급격히 증가하며, 카오스적 궤도 이탈을 예측하는 리아푸노프(Lyapunov) 시간 척도를 계산했습니다.'
+        content: `프로젝트는 인간 연구자의 간결한 질문에서 시작되었습니다.
+
+> **👤 인간 연구자**: *"해당 프로젝트를 정형 검증하고 싶은데 어떤 방식을 추천해?"*
+
+이 질문을 받은 **Gemini 3.8 Flash 기반 메인 AI 아키텍트**는 프로젝트의 전체 파일 트리와 3,200여 줄의 코드를 초고속으로 전수 스캔했습니다. 그리고 현실적인 정형 검증 전략을 짚어냈습니다.
+
+> **🤖 Gemini 3.8 Flash 아키텍트의 분석**:  
+> *"이 프로젝트는 Cloud Hypervisor(Rust) 자체를 밑바닥부터 새로 짠 커널이 아니라, 그 위에서 다중 테넌트 격리·방화벽·생명주기를 제어하는 오케스트레이션 시스템입니다. 따라서 seL4 마이크로커널처럼 C/Rust 커널 전체를 어셈블리 수준까지 증명하는 데 10년을 쓰는 대신, **이 프로젝트가 직접 설계한 보안 경계(Security Invariants)를 정밀 타격하는 이원화 정형 검증(Targeted Dual-Engine Formal Verification)**이 가장 강력하고 현실적입니다."*
+
+Gemini 3.8 Flash 아키텍트가 제안한 두 가지 무기는 다음과 같았습니다:
+
+1. **Lean 4 (대화형 정리 증명기, Interactive Theorem Prover)**:
+   * 최근 수학계(테렌스 타오 등)와 시스템 검증 분야에서 각광받는 순수 증명 언어입니다.
+   * [\`runtime/manager.py\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/runtime/manager.py)의 VM 할당/해제 상태 머신을 수학적 귀납법(Mathematical Induction)으로 모델링하여, 자원 한도와 상호 배제가 영원히 깨지지 않음을 증명합니다.
+2. **Z3 SMT Solver (만족 가능성 모듈로 이론 솔버)**:
+   * 마이크로소프트 리서치가 개발하고 AWS가 클라우드 방화벽(VPC) 검증에 사용하는 자동 논리 추론 엔진입니다.
+   * [\`runtime/network.py\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/runtime/network.py)의 \`iptables\` 방화벽 체인과 [\`scripts/security.py\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/scripts/security.py)의 비트마스크 조건을 1차 논리식(First-Order Logic)으로 변환한 뒤, **"해커가 금지된 사설망으로 패킷을 통과시킬 수 있는 조합이 단 하나라도 존재하는가?"**라고 질문합니다. Z3가 **\`UNSAT\`(Unsatisfiable, 해가 존재하지 않음 = 수학적으로 불가능함)**을 출력하면 방화벽의 완벽함이 증명됩니다.
+
+> **👤 인간 연구자**: *"formal-verification 디렉토리를 생성했어. 거기서 정형 검증을 시도해줘."*
+
+Gemini 3.8 Flash 아키텍트는 즉시 [\`formal-verification/\`](https://github.com/weird14446/hypervisor-for-agora/tree/main/formal-verification) 디렉터리 아래에 1차 검증 스위트(\`ManagerCapacity.lean\`, \`verify_network_isolation.py\`, \`verify_state_confinement.py\`, \`run_verification.sh\`)를 구축하고 첫 번째 검증 통과 결과를 보고했습니다.`,
       },
       {
-        id: 'sec-chaos-simulation',
-        title: '1억 년 단위 고속 수치 시뮬레이션',
+        id: '3-2막-결정적-질문--정형-검증이-실제-코드를-잘-반영하고-있는가',
+        title: '3. 2막: 결정적 질문 — "정형 검증이 실제 코드를 잘 반영하고 있는가?"',
         level: 1,
-        content: '표준 룽게-쿠타 방식과 달리 심플렉틱 6차 적분기는 1억 년 장기 시뮬레이션에서도 에너지 오차가 주기적으로 진동할 뿐 영구적인 수치 감쇠를 유발하지 않음을 확인했습니다.'
-      }
+        content: `모든 증명이 초록불(\`PASS\`)을 띄웠지만, 여기서 연구자는 정형 검증 역사상 가장 중요하고도 날카로운 질문을 던집니다.
+
+> **👤 인간 연구자**: *"\`/teamwork\` 정형 검증이 코드의 내용을 잘 반영하는지도 확인해줘."*
+
+### 왜 이 질문이 핵심인가? (형식 검증의 아킬레스건: '모델-코드 괴리')
+정형 검증에서 가장 무서운 함정은 **"증명은 완벽하게 맞았는데, 정작 증명한 수식이 실제 코드와 다른 경우"**입니다.
+* 만약 실제 파이썬 코드는 디렉터리 권한이 정확히 \`0700\`이어야만 통과시키는데, 수학 모델에서는 실수로 "그룹/타인에게 쓰기 권한만 없으면 된다(\`0755\`도 허용)"라고 느슨하게 적었다면 어떨까요?
+* 만약 방화벽 증명 코드에서 실수로 "목적지 포트가 443이 아니면서 동시에 443인 패킷은 없다"처럼 당연한 동어반복(항진식, Tautology)을 증명해 놓고 방화벽이 안전하다고 착각했다면 어떨까요?
+
+이 문제를 해결하기 위해 단일 AI가 자신의 코드를 스스로 검토하는 수준을 넘어, **전원 Google Gemini 3.8 Flash로 구동되는 12개의 전문 서브에이전트(Subagents)가 분업·비판·공격·감사를 수행하는 자율 멀티 에이전트 팀(\`/teamwork\`)**이 가동되었습니다.`,
+      },
+      {
+        id: '4-3막-12인의-gemini-38-flash-멀티-에이전트-팀-소집과-역할-분담',
+        title: '4. 3막: 12인의 Gemini 3.8 Flash 멀티 에이전트 팀 소집과 역할 분담',
+        level: 1,
+        content: `\`/teamwork\` 명령이 발동되자, 시스템은 즉시 독립된 작업 컨텍스트를 가진 서브에이전트 군단을 편성했습니다. 아래 다이어그램은 이번 정형 검증 감사에 투입된 **총 12개 Gemini 3.8 Flash 에이전트의 실제 아키텍처와 워크플로**입니다.
+
+\`\`\`mermaid
+flowchart TD
+    User["👤 인간 연구자 (User)"]
+    Main["🤖 Main Architect Agent (Gemini 3.8 Flash)<br/>초기 증명 구축 및 브리핑 중계"]
+    Interviewer["🎙️ Interviewer Agent (Gemini 3.8 Flash)<br/>요구사항 구체화 및 스펙 확정"]
+    Orchestrator["🧭 Project Orchestrator (Gemini 3.8 Flash)<br/>파이프라인 총괄 지휘"]
+
+    subgraph Phase0 ["Phase 0: 병렬 코드-수식 대조 감사 (Parallel Survey)"]
+        Exp1["🔍 Explorer 1 (Gemini 3.8 Flash)<br/>Lean 4 vs manager.py"]
+        Exp2["🔍 Explorer 2 (Gemini 3.8 Flash)<br/>Z3 Network vs network.py"]
+        Exp3["🔍 Explorer 3 (Gemini 3.8 Flash)<br/>Z3 Security vs security.py"]
+    end
+
+    subgraph Phase1 ["Phase 1: 수식 교정 및 정리 확장 (Remediation)"]
+        Worker1["🛠️ Verification Worker M1 (Gemini 3.8 Flash)<br/>Lean 4 귀납 폐포 증명 & Z3 모델 정밀화"]
+    end
+
+    subgraph Phase2 ["Phase 2: 적대적 검증 게이트 (5-Agent Adversarial Gate)"]
+        Rev1["📋 Reviewer 1 (Gemini 3.8 Flash)<br/>Lean 4 & 상태 머신 감사"]
+        Rev2["📋 Reviewer 2 (Gemini 3.8 Flash)<br/>Z3 네트워크 & 보안 감사"]
+        Chal1["⚔️ Challenger 1 Red Team (Gemini 3.8 Flash)<br/>124개 SMT 공격 쿼리 폭격"]
+        Chal2["⚔️ Challenger 2 Red Team (Gemini 3.8 Flash)<br/>100,000회 상태 전이 퍼징"]
+        Forensic["🕵️ Forensic Auditor (Gemini 3.8 Flash)<br/>무공리/무sorry 및 코드 무결성 포렌식"]
+    end
+
+    subgraph Phase3 ["Phase 3: 클린룸 최종 승인 (Clean-Room Victory Audit)"]
+        Victory["🏆 Independent Victory Auditor (Gemini 3.8 Flash)<br/>Zero-Context 독립 재실행 및 최종 판정"]
+    end
+
+    User <-->|"1. 초기 설계 & /teamwork 지시"| Main
+    Main <-->|"2. 인터뷰 중계"| Interviewer
+    Interviewer -->|"3. 승인된 태스크 프롬프트 전달"| Orchestrator
+    Orchestrator --> Exp1 & Exp2 & Exp3
+    Exp1 & Exp2 & Exp3 -->|"불일치 매핑 리포트"| Orchestrator
+    Orchestrator --> Worker1
+    Worker1 -->|"교정된 증명 + AUDIT_REPORT.md"| Orchestrator
+    Orchestrator --> Rev1 & Rev2 & Chal1 & Chal2 & Forensic
+    Rev1 & Rev2 & Chal1 & Chal2 & Forensic -->|"만장일치 PASS"| Victory
+    Victory -->|"VICTORY CONFIRMED"| Main --> User
+\`\`\`
+
+### 에이전트별 상세 역할 (Who Did What)
+
+| 순번 | 에이전트 명칭 (ID) | 구동 모델 | 담당 역할 (Role) | 주요 임무 및 검증 대상 |
+| :---: | :--- | :---: | :--- | :--- |
+| **1** | **Main Architect** | Gemini 3.8 Flash | 초기 설계자 & 커뮤니케이터 | 초기 Lean 4 / Z3 검증 스위트 작성 및 사용자-팀 간 브리핑 중계 |
+| **2** | **\`teamwork_interviewer\`** | Gemini 3.8 Flash | 요구사항 인터뷰어 | 사용자에게 5가지 핵심 질문(목적, 수정 범위, 팀 규모, 제약사항, 리소스)을 질의하여 엄격한 **Production Assurance** 기준서 작성 |
+| **3** | **\`orchestrator\`** | Gemini 3.8 Flash | 총괄 오케스트레이터 | 전체 감사 일정을 마일스톤으로 분할하고 10개의 하위 에이전트를 병렬/순차 스케줄링 |
+| **4** | **\`explorer_survey_1\`** | Gemini 3.8 Flash | 자원 모델 탐색관 | [\`ManagerCapacity.lean\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/formal-verification/ManagerCapacity.lean)과 [\`runtime/manager.py\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/runtime/manager.py), [\`runtime/runtime_options.py\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/runtime/runtime_options.py)를 1:1 라인 대조 |
+| **5** | **\`explorer_survey_2\`** | Gemini 3.8 Flash | 네트워크 모델 탐색관 | [\`verify_network_isolation.py\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/formal-verification/verify_network_isolation.py)와 [\`runtime/network.py\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/runtime/network.py)의 2계층 \`iptables\` 체인 및 CIDR 검증 로직 대조 |
+| **6** | **\`explorer_survey_3\`** | Gemini 3.8 Flash | 호스트 보안 탐색관 | [\`verify_state_confinement.py\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/formal-verification/verify_state_confinement.py)와 [\`scripts/security.py\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/scripts/security.py)의 \`check_state()\`, \`confine()\` 및 기존 테스트 대조 |
+| **7** | **\`teamwork_worker_m1\`** | Gemini 3.8 Flash | 정형 검증 엔지니어 | 3인의 Explorer가 찾아낸 모든 모델-코드 불일치를 수리하고 391줄 분량의 [\`AUDIT_REPORT.md\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/formal-verification/AUDIT_REPORT.md) 작성 |
+| **8** | **\`teamwork_reviewer_1\`** | Gemini 3.8 Flash | 수석 리뷰어 1 | 수정된 Lean 4 증명과 매니저 파이썬 코드 간의 수학적 동치성(Equivalence) 심사 |
+| **9** | **\`teamwork_reviewer_2\`** | Gemini 3.8 Flash | 수석 리뷰어 2 | 수정된 Z3 네트워크/보안 수식과 실제 리눅스 커널/넷필터 동작 간의 정합성 심사 |
+| **10** | **\`teamwork_challenger_1\`** | Gemini 3.8 Flash | 레드팀 챌린저 1 | Z3 수식에 124개의 변칙 공격 패킷과 권한 우회 쿼리를 주입하여 모델의 빈틈 및 공허한 참(Vacuous Truth) 여부 타격 |
+| **11** | **\`teamwork_challenger_2\`** | Gemini 3.8 Flash | 레드팀 챌린저 2 | 100,000회의 무작위 VM 생성/종료/타임아웃 상태 전이 스트레스 테스트로 Lean 4 모델과 실제 Python 로직 동시 타격 |
+| **12** | **\`teamwork_auditor\` & \`victory_auditor\`** | Gemini 3.8 Flash | 포렌식 & 최종 승리 감사관 | 프로덕션 코드 무변경(\`git diff\`), \`sorry\`나 가짜 공리(\`axiom\`) 0건 확인, 클린룸 환경에서 전체 검증 스크립트 독립 재실행 |
+
+---
+
+### 에이전트와 인간의 실제 인터뷰 기록 (Phase 0 진입 전)
+
+작업 시작 직후, **\`Interviewer Agent\`**가 먼저 인간 연구자에게 다음과 같은 정식 인터뷰를 요청했습니다:
+
+> **🎙️ Interviewer Agent (\`7c34a7e5\`) → Main Agent → 👤 인간 연구자**:  
+> *"본격적인 실행에 앞서 세부 요구사항을 확인합니다:*  
+> *1. 이번 감사의 주된 목적은? → **[선택: Production assurance (실제 프로덕션 수준의 보증)]***  
+> *2. 불일치 발견 시 작업 범위는? → **[선택: 상세 감사 보고서 작성 및 검증 코드 직접 업데이트]***  
+> *3. 증명 파이프라인 구성은? → **[선택: 표준 증명 파이프라인]***  
+> *4. 제한 사항은? → **[선택: 제한 없음, 최적의 정형 검증 접근법 허용]***  
+> *5. 활용할 검증 리소스는? → **[선택: 기존 검증 스크립트 및 저장소 테스트 스위트 활용]**"*
+
+인간 연구자가 초안을 확인한 뒤 **"승인."**이라고 답하자, 즉시 \`Orchestrator\`가 깨어나 3명의 Explorer 에이전트를 동시에 코드베이스로 급파했습니다.`,
+      },
+      {
+        id: '5-4막-에이전트들이-찾아낸-3가지-치명적-모델-코드-불일치와-교정-과정',
+        title: "5. 4막: 에이전트들이 찾아낸 3가지 치명적 '모델-코드 불일치'와 교정 과정",
+        level: 1,
+        content: `만약 1차 정형 검증에서 멈추었다면 아무도 몰랐을 **3가지 중대한 모델링 간극(Discrepancy)**이 Phase 0 탐색 에이전트들의 현미경 감사에 의해 적발되었습니다.
+
+---
+
+### 🔍 발견 1 (\`Explorer 1\` 적발): "한 걸음만 안전한가, 영원히 안전한가?" (Lean 4 귀납적 폐포 누락)
+
+* **무엇이 문제였나?**  
+  1차 작성된 [\`ManagerCapacity.lean\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/formal-verification/ManagerCapacity.lean)은 \`step_preserves_safe\`라는 정리를 증명했습니다. 즉, *"현재 상태 $s$가 안전할 때, VM을 하나 켜거나(\`launch\`) 끄면(\`stop\`) 다음 상태 $s'$도 안전하다"*는 **단일 스텝(1-Step) 전이**만 증명되어 있었습니다.
+  하지만 **\`Explorer 1\`**은 다음과 같이 리포트했습니다:
+  > **🔍 Explorer 1의 감사 보고**:  
+  > *"실제 \`runtime/manager.py\` 데몬은 서버가 켜진 뒤 수천, 수만 번에 걸쳐 VM 생성(\`prepare\`)과 회수(\`reap\`)를 비결정적인 순서로 반복합니다. 1단계 전이 증명만으로는 초기 상태 \`[]\`로부터 임의의 $N$번 전이를 거친 모든 도달 가능 상태(Reachable States)의 안전성이 기계적으로 닫혀(Closed) 있지 않습니다."*
+
+* **어떻게 고쳤나? (\`Worker 1\`의 조치)**  
+  [\`ManagerCapacity.lean:255-270\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/formal-verification/ManagerCapacity.lean#L255-L270)에 초기 상태로부터 도달 가능한 모든 상태의 집합을 정의하는 귀납적 술어 \`Reachable : SystemState → Prop\`를 새로 도입하고, 임의의 길이의 실행 시퀀스 전체에 대해 안전성과 상호 배제가 영구히 보존됨을 증명하는 두 개의 최상위 정리를 추가했습니다:
+
+\`\`\`lean
+inductive Reachable : SystemState → Prop where
+  | init : Reachable []
+  | step {s s' : SystemState} : Reachable s → Step s s' → Reachable s'
+
+theorem reachable_safe (s : SystemState) (h : Reachable s) : Safe s := by
+  induction h with
+  | init => exact init_safe
+  | step _ hstep ih => exact step_preserves_safe _ _ ih hstep
+
+theorem reachable_mutual_exclusion (s : SystemState) (h : Reachable s) (c : Nat) :
+    countCanvas c s ≤ 1 := by
+  have hsafe := reachable_safe s h
+  exact mutual_exclusion s hsafe.nodup c
+\`\`\`
+
+---
+
+### 🔍 발견 2 (\`Explorer 2\` 적발): "항진식의 함정과 문서 전용 IP의 역설" (Z3 네트워크 격리 모델)
+
+**\`Explorer 2\`**는 [\`verify_network_isolation.py\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/formal-verification/verify_network_isolation.py)와 [\`runtime/network.py\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/runtime/network.py)를 한 줄씩 비교하다가 매우 흥미로운 두 가지 결함을 찾아냈습니다.
+
+* **무엇이 문제였나?**
+  1. **문서용 테스트 IP(\`198.51.100.x\`) 사용 오류**:  
+     1차 검증 스크립트에서는 공개 HTTPS 프록시 예외 테스트를 위해 \`198.51.100.20\`이라는 IP를 사용했습니다. 그런데 이 IP는 IANA가 지정한 **RFC 5737 문서 작성용 예약 대역(TEST-NET-2)**입니다!  
+     실제 프로덕션 코드인 [\`runtime/network.py:23\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/runtime/network.py#L23)에서는 \`198.51.100.0/24\`를 아예 **\`BLOCKED\`(차단 대역)**에 넣어두었고, [\`runtime/network.py:68\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/runtime/network.py#L68)에서는 \`if not address.is_global: raise ValueError(...)\`로 이 IP를 거부합니다. 즉, 검증 모델이 실제 코드에서는 설정조차 불가능한 IP로 증명을 수행하고 있었던 것입니다!
+  2. **정리 6번의 동어반복(Tautology)과 호스트 INPUT 체인 누락**:  
+     초기 정리 6번은 \`HTTPS_NS\` 체인 하나만 떼어놓고 *"443 포트만 허용하는 규칙에 443이 아닌 포트를 넣으면 통과하지 못한다($443 \\neq 443 \\implies \\text{False}$)"*는 너무나 당연한 식만 확인하고 있었습니다. 반면 실제 [\`runtime/network.py:102-120\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/runtime/network.py#L102-L120)의 핵심 보안 장치인 **호스트 \`INPUT\` 체인(\`AGORA-HTTPS-IN\`)이 게스트로부터 호스트의 SSH(22번)나 내부 포트로 들어오는 패킷을 어떻게 막는지**와, **네임스페이스 NAT에서 호스트 NAT로 이어지는 2계층 연속 통과(Composition)**가 모델에서 빠져 있었습니다.
+
+* **어떻게 고쳤나? (\`Worker 1\`의 조치)**
+  * 테스트 IP를 실제 \`is_global == True\`를 만족하는 공인 IP(\`PUBLIC_PROXY_IP = "93.184.216.34"\`, \`HOST_INGRESS_IP = "198.199.100.5"\`)로 교체했습니다.
+  * 호스트 \`INPUT\` 필터 체인(\`encode_host_input_chain\`)을 Z3로 완벽히 구현하고, 네임스페이스 \`FORWARD\` 체인 최상단에 \`AGORA-HTTPS\` 점프 규칙([\`runtime/network.py:90\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/runtime/network.py#L90))을 정확히 연결했습니다.
+  * 정리 6을 **Claim 6A(호스트 인그레스 비-HTTPS 차단)**와 **Claim 6B(네임스페이스 프록시 화이트리스트)**로 정밀화하고, 게스트 VM(\`10.205.0.2\`)에서 출발한 패킷이 네임스페이스 NAT(\`10.204.0.2\`로 변환)를 거쳐 호스트 방화벽까지 통과하는 전 과정을 결합한 **정리 7번(End-to-End Multi-Tier Forwarding & NAT Composition)**을 신설하여 증명했습니다.
+
+---
+
+### 🔍 발견 3 (\`Explorer 3\` 적발): "\`0755\` 권한이 통과된다고?" (Z3 호스트 상태 봉인 모델)
+
+가장 극적인 발견은 **\`Explorer 3\`**가 [\`scripts/security.py\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/scripts/security.py)와 [\`verify_state_confinement.py\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/formal-verification/verify_state_confinement.py)를 대조할 때 나왔습니다.
+
+* **무엇이 문제였나?**  
+  [\`scripts/security.py\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/scripts/security.py)는 디렉터리를 두 종류로 나누어 권한을 검사합니다:
+  1. **루트 상태 디렉터리 (\`path\` 자체, 25번 라인)**:
+     \`\`\`python
+     if stat.S_IMODE(path.stat().st_mode) != 0o700:
+         raise ValueError('State directory must have mode 0700; run setup as its owner')
+     \`\`\`
+     즉, 그룹이나 타인에게 읽기/실행 권한조차 주지 않는 **정확히 \`0700\`(\`rwx------\`)**만 허용하며, \`0755\`(\`rwxr-xr-x\`)는 즉시 에러를 던집니다. (실제 유닛 테스트 [\`tests/test_security.py:25-27\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/tests/test_security.py#L25-L27)에서도 \`0755\`를 넣었을 때 거부되는지 명시적으로 테스트합니다.)
+  2. **하위 서브디렉터리 (\`path.rglob('*')\`, 35번 라인)**:
+     \`\`\`python
+     if stat.S_ISDIR(s.st_mode) and s.st_mode & 0o022:
+         raise ValueError(f'Writable state subdirectory: {p}')
+     \`\`\`
+     하위 디렉터리는 그룹/타인 쓰기 비트(\`0022\`)만 꺼져 있으면 됩니다.
+
+  그런데 1차 Z3 모델의 정리 4번은 이 둘을 구분하지 않고 모든 디렉터리를 \`dir_mode & 0o022 == 0\`으로만 모델링해 버렸습니다! **\`Explorer 3\`**가 이 수식에 \`0o755\`를 넣어보니(\`0o755 & 0o022 == 0\`), **실제 코드는 엄격히 금지하는 \`0o755\` 루트 디렉터리를 Z3 모델은 "안전함(\`SAT\`)"으로 통과시키는 치명적 모순**이 드러났습니다!
+
+* **어떻게 고쳤나? (\`Worker 1\`의 조치)**
+  * 정리 4번을 **정리 4A(루트 상태 디렉터리 \`root_mode == 0o700\` 및 소유자 일치 강제 — \`0o755\` 즉시 거부 증명)**와 **정리 4B(하위 디렉터리 \`subdir_mode & 0o022 == 0\` 및 소유자 일치 강제)**로 완전히 분리했습니다.
+  * 나아가 [\`scripts/security.py\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/scripts/security.py)에 존재하는 모든 방어 로직—절대 경로 검사, 콤마/개행 문자 인젝션 차단, 하위 트리 전체의 심볼릭 링크 차단, 파일 타입 화이트리스트(\`REG\`, \`DIR\`, \`SOCK\`만 허용하고 \`FIFO\`나 디바이스 파일 차단), \`PR_SET_NO_NEW_PRIVS\`, 코어 덤프 금지(\`RLIMIT_CORE = 0\`), \`umask = 0o077\`—을 빠짐없이 Z3 수식에 1:1로 반영했습니다.`,
+      },
+      {
+        id: '6-5막-레드팀-챌린저의-10만-번-폭격과-클린룸-최종-승리-감사',
+        title: '6. 5막: 레드팀 챌린저의 10만 번 폭격과 클린룸 최종 승리 감사',
+        level: 1,
+        content: `\`Worker 1\`이 모든 수식을 교정하고 보고서를 제출하자, \`Orchestrator\`는 곧바로 **Phase 2: 적대적 검증 게이트(Adversarial Gate)**를 열었습니다. 여기서는 코드를 고친 에이전트가 아닌, **오직 흠집을 잡고 증명을 깨뜨리기 위해 투입된 5명의 독립 에이전트**가 활동했습니다.
+
+### ⚔️ Red Team Challenger 1의 공격: 124개의 익스플로잇 쿼리 폭격
+**\`Challenger 1\`**은 [\`formal-verification/adversarial_challenge.py\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/formal-verification/adversarial_challenge.py) 및 [\`tests/test_formal_verification_adversarial.py\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/tests/test_formal_verification_adversarial.py)를 직접 작성하여 Z3 모델에 **124개의 정교한 공격 시나리오**를 퍼부었습니다:
+* **경계값 IP 폭격 (40개 쿼리)**: \`10.0.0.1\`, \`10.255.255.254\`, 클라우드 메타데이터 \`169.254.169.254\`, 멀티캐스트 \`224.0.0.1\`, 브로드캐스트 \`255.255.255.255\`, 심지어 트랜짓 서브넷 내부의 게이트웨이 IP(\`10.204.0.1\`)까지 경계선에 걸친 모든 IP로 패킷 전송 시도 → **전원 \`UNSAT\`(차단 증명)**!
+* **호스트 포트 우회 공격**: 허용된 인그레스 IP로 목적지를 속이되 포트를 SSH(\`22\`), HTTP(\`80\`), 대체 HTTPS(\`8443\`), 혹은 프로토콜을 \`UDP(17)\`로 바꿔치기하여 침투 시도 → **전원 \`UNSAT\`(차단 증명)**!
+* **특수 파일 및 권한 변조 공격**: 상태 디렉터리에 네임드 파이프(\`S_IFIFO\`), 블록 디바이스(\`S_IFBLK\`), 캐릭터 디바이스(\`S_IFCHR\`), 하드링크(\`nlink = 2\`), Sticky 비트(\`0o1700\`), 루트 \`0o755\` 권한 주입 시도 → **전원 \`UNSAT\`(거부 증명)**!
+* **비공허성(Non-Vacuity) 역검증 (8개 쿼리)**: *"혹시 방화벽 수식이 잘못 짜여서 정상적인 인터넷 트래픽까지 전부 막아버리는 '죽은 모델(Vacuously True)'은 아닐까?"* → 정상적인 공인 IP(\`8.8.8.8\`, \`1.1.1.1\`)로의 아웃바운드 연결과 정상 \`0o700\` 디렉터리 조건을 넣었을 때 정확히 **\`SAT\`(통과 가능)**가 나오는 것을 확인하여 모델이 살아있음을 입증했습니다!
+
+### ⚔️ Red Team Challenger 2의 공격: 100,000회 무작위 상태 전이 스트레스 테스트
+**\`Challenger 2\`**는 [\`tests/test_manager_capacity_stress.py\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/tests/test_manager_capacity_stress.py)를 작성하여, Lean 4 상태 머신과 똑같은 규칙으로 **100,000번의 무작위 VM 생성(\`small\`, \`medium\`, \`large\`)·중복 실행 시도·종료·재실행 시뮬레이션**을 돌렸습니다.
+* 10만 번의 전이 동안 단 한 번이라도 활성 VM 수 $> 4$, 총 메모리 $> 8192\\,\\text{MiB}$, 총 vCPU $> 8$, 혹은 동일 캔버스 중복 실행이 발생하는지 추적했으나 **위반 건수는 정확히 0건**이었습니다.
+
+### 🕵️ Forensic Auditor & 🏆 Victory Auditor의 최종 클린룸 검증
+마지막으로 **\`Forensic Auditor\`**와 이전 대화 맥락을 전혀 공유받지 않은 클린룸 에이전트인 **\`Victory Auditor\`**가 투입되었습니다.
+1. **치트키(\`sorry\` / 임의 공리) 전수 스캔**:  
+   Lean 4에서는 증명이 막힐 때 \`sorry\`라고 적거나 \`axiom\`으로 가짜 가정을 추가하면 컴파일러가 넘어갑니다. 감사관은 정규식 스캔과 \`#print axioms\` 명령어로 모든 정리를 조사했습니다:
+   \`\`\`text
+   'init_safe' does not depend on any axioms
+   'step_preserves_safe' depends on axioms: [propext, Quot.sound]
+   'mutual_exclusion' depends on axioms: [propext, Quot.sound]
+   'step_preserves_mutual_exclusion' depends on axioms: [propext, Quot.sound]
+   'reachable_safe' depends on axioms: [propext, Quot.sound]
+   'reachable_mutual_exclusion' depends on axioms: [propext, Quot.sound]
+   \`\`\`
+   사용자 정의 공리나 \`sorryAx\`는 단 하나도 없으며, 오직 Lean 4 수학 기초론의 표준 공리(\`propext\` 명제 외연성, \`Quot.sound\` 몫타입 건전성)만으로 100% 순수하게 증명되었음을 확인했습니다.
+2. **프로덕션 코드 무결성(\`git diff\`) 확인**:  
+   정형 검증을 통과시키기 위해 실제 운영 코드(\`runtime/\`, \`scripts/\`)를 몰래 고치는 부정행위가 없었음을 \`git diff --stat\` (변경 0줄)으로 확증했습니다.
+
+이 모든 관문을 통과한 끝에, 최종 감사관은 **\`VICTORY CONFIRMED\`** 판정을 내렸습니다.`,
+      },
+      {
+        id: '7-최종-검증-아키텍처-및-수학적-정리-명세-총-18개-정리',
+        title: '7. 최종 검증 아키텍처 및 수학적 정리 명세 (총 18개 정리)',
+        level: 1,
+        content: `이번 프로젝트를 통해 완성된 [\`formal-verification/\`](https://github.com/weird14446/hypervisor-for-agora/tree/main/formal-verification) 스위트는 총 **18개의 핵심 수학적 정리(Lean 4 정리 6개 + Z3 네트워크 정리 7개 + Z3 호스트 보안 정리 5개)**를 증명합니다.
+
+### A. Lean 4: VM 매니저 용량 및 동시성 상태 머신 ([\`ManagerCapacity.lean\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/formal-verification/ManagerCapacity.lean))
+
+시스템 상태 $s \\in \\text{List ActiveVM}$에 대하여 안전성 불변식 $\\text{Safe}(s)$는 다음과 같이 정의됩니다:
+
+$$\\text{Safe}(s) \\iff |s| \\le 4 \\;\\land\\; \\sum_{v \\in s} \\text{mem}(v) \\le 8192 \\;\\land\\; \\sum_{v \\in s} \\text{cpu}(v) \\le 8 \\;\\land\\; \\forall v_1 \\neq v_2 \\in s, \\text{id}(v_1) \\neq \\text{id}(v_2)$$
+
+| 정리 번호 | 정리 명칭 (Theorem) | 수학적 명제 | 검증 결과 |
+| :---: | :--- | :--- | :---: |
+| **L1** | \`init_safe\` | $\\text{Safe}([\\,])$ | **Proven** (무공리) |
+| **L2** | \`step_preserves_safe\` | $\\forall s, s',\\; \\text{Safe}(s) \\land \\text{Step}(s, s') \\implies \\text{Safe}(s')$ | **Proven** |
+| **L3** | \`mutual_exclusion\` | $\\forall s, c,\\; \\text{NoDuplicates}(s) \\implies \\text{countCanvas}(c, s) \\le 1$ | **Proven** |
+| **L4** | \`step_preserves_mutual_exclusion\` | $\\forall s, s', c,\\; \\text{Safe}(s) \\land \\text{Step}(s, s') \\implies \\text{countCanvas}(c, s') \\le 1$ | **Proven** |
+| **L5** | \`reachable_safe\` | $\\forall s,\\; \\text{Reachable}(s) \\implies \\text{Safe}(s)$ | **Proven** |
+| **L6** | \`reachable_mutual_exclusion\` | $\\forall s, c,\\; \\text{Reachable}(s) \\implies \\text{countCanvas}(c, s) \\le 1$ | **Proven** |
+
+---
+
+### B. Z3 SMT: 2계층 네트워크 및 방화벽 격리 ([\`verify_network_isolation.py\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/formal-verification/verify_network_isolation.py))
+
+32비트 BitVector로 표현된 모든 가능한 IPv4 패킷 $p$에 대하여 다음 7개 공격 불가능성 정리를 증명했습니다:
+
+| 정리 번호 | 검증 항목 | 논리 명제 (부정 쿼리 → \`UNSAT\` 증명) | 보장하는 실제 보안 속성 |
+| :---: | :--- | :--- | :--- |
+| **N1** | **사설망/메타데이터 차단** | $\\forall p,\\; \\text{In}(p) \\in \\text{agv+} \\land \\text{Dst}(p) \\in \\text{BLOCKED} \\implies \\neg \\text{HostAccept}(p)$ | 게스트 VM에서 내부 사설망(RFC 1918), 루프백, 클라우드 메타데이터(\`169.254.169.254\`) 접근 절대 불가 |
+| **N2** | **캔버스 간 완전 격리** | $\\forall p,\\; \\text{In}(p) = \\text{agv}_1 \\land \\text{Out}(p) = \\text{agv}_2 \\implies \\neg \\text{HostAccept}(p)$ | 서로 다른 사용자의 캔버스 VM 간 패킷 교환 및 스니핑 절대 불가 |
+| **N3** | **외부 신규 인바운드 차단** | $\\forall p,\\; \\text{In}(p) = \\text{Uplink} \\land \\text{Out}(p) \\in \\text{agv+} \\land \\text{State}(p) = \\text{NEW} \\implies \\neg \\text{HostAccept}(p)$ | 외부 인터넷에서 게스트 VM으로 들어오는 해킹 연결 시도 100% 차단 |
+| **N4** | **게스트 IP 스푸핑 방지** | $\\forall p,\\; \\text{In}(p) = \\text{tap0} \\land \\text{Src}(p) \\neq 10.205.0.2 \\implies \\neg \\text{NsAccept}(p)$ | 게스트 VM이 자신의 IP(\`10.205.0.2\`)를 위조하여 보낸 패킷은 네임스페이스에서 즉시 폐기 |
+| **N5** | **심층 방어 (Defense-in-Depth)** | $\\forall p,\\; \\text{In}(p) = \\text{tap0} \\land \\text{Dst}(p) \\in \\text{BLOCKED} \\implies \\neg \\text{NsAccept}(p)$ | 설령 호스트 방화벽이 무력화되어도 게스트 네임스페이스 방화벽이 독자적으로 사설망 접근 차단 |
+| **N6** | **호스트 인그레스 & HTTPS 프록시 제한** | **6A**: 호스트 인그레스 IP 대상 비-443/비-TCP 패킷 $\\implies \\neg \\text{HostInputAccept}(p)$<br>**6B**: 프록시 대상 비-443/비-TCP 패킷 $\\implies \\neg \\text{AgoraHttpsAccept}(p)$ | 공개 HTTPS 프록시 예외를 켜더라도 호스트의 SSH(22), HTTP(80) 등 내부 서비스 접근 절대 불가 |
+| **N7** | **2계층 엔드투엔드 NAT 합성** | $\\forall p_{\\text{vm}}, p_{\\text{host}},\\; (\\text{Origin}(p_{\\text{vm}}) \\land \\text{NAT}(p_{\\text{vm}}, p_{\\text{host}}) \\land \\text{Dst}(p_{\\text{vm}}) \\in \\text{BLOCKED}) \\implies \\neg(\\text{NsAccept} \\land \\text{HostAccept})$ | 게스트 → 네임스페이스 NAT → veth → 호스트 FORWARD를 거치는 전체 파이프라인에서 차단 대역 누출 제로 |
+
+---
+
+### C. Z3 SMT: 호스트 상태 봉인 및 최소 권한 원칙 ([\`verify_state_confinement.py\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/formal-verification/verify_state_confinement.py))
+
+| 정리 번호 | 검증 항목 | 논리 명제 (부정 쿼리 → \`UNSAT\` 증명) | 보장하는 실제 보안 속성 |
+| :---: | :--- | :--- | :--- |
+| **S1** | **경로 정규화 & 심볼릭 링크 배제** | $(\\neg \\text{IsAbsolute} \\lor \\text{HasForbiddenChar} \\lor \\text{SymlinkAncestor} \\lor \\text{SymlinkSubtree}) \\implies \\neg \\text{ValidPath}$ | 상대 경로, 개행/콤마 인젝션, 상위·하위 디렉터리 내 단 하나의 심볼릭 링크도 허용하지 않음 |
+| **S2** | **Non-Root & 권한 상승 영구 차단** | $(\\text{UID}=0 \\lor \\text{Caps}\\neq 0 \\lor \\text{NoNewPrivs}\\neq 1 \\lor \\text{Core}\\neq 0 \\lor \\text{Umask}\\neq 0077_8) \\implies \\neg \\text{Confine}$ | VMM 런처는 절대 루트나 Linux Capability를 가질 수 없으며, 코어 덤프 유출 및 권한 상승 불가 |
+| **S3** | **파일 타입 화이트리스트 & SUID 차단** | $(\\text{Type} \\notin \\{\\text{REG, DIR, SOCK}\\} \\lor \\text{UID} \\neq \\text{EUID} \\lor (\\text{REG} \\land (\\text{mode}\\,\\&\\,6022_8 \\neq 0 \\lor \\text{nlink} \\neq 1))) \\implies \\neg \\text{Accepted}$ | SUID/SGID 파일, 타인 쓰기 가능 파일, 하드링크, 디바이스/파이프 파일 주입 원천 차단 |
+| **S4A** | **루트 상태 디렉터리 \`0700\` 강제** | $(\\text{root\\_mode} \\neq 0700_8 \\lor \\text{root\\_uid} \\neq \\text{euid}) \\implies \\neg \\text{AcceptedRootDir}$ | 상태 루트 디렉터리는 정확히 \`0700\` 모드여야만 하며, \`0755\` 등 조금이라도 열린 권한은 즉시 거부 |
+| **S4B** | **서브디렉터리 쓰기 권한 차단** | $(\\text{subdir\\_mode}\\,\\&\\,0022_8 \\neq 0 \\lor \\text{subdir\\_uid} \\neq \\text{euid}) \\implies \\neg \\text{AcceptedSubdir}$ | 상태 폴더 내 모든 하위 디렉터리에 그룹/타인 쓰기 권한 부여 불가 |`,
+      },
+      {
+        id: '8-결론-및-2초-만에-직접-재현해-보기',
+        title: '8. 결론 및 2초 만에 직접 재현해 보기',
+        level: 1,
+        content: `이번 리서치는 두 가지 측면에서 중요한 이정표를 제시합니다.
+
+첫째, **시스템 보안에서의 실용적 정형 검증(Practical Formal Verification)**입니다. 거대한 하이퍼바이저 전체를 증명하느라 수년을 소비하는 대신, 실제로 보안 사고가 가장 많이 발생하는 **오케스트레이션 제어 평면, 방화벽 규칙, 권한 격리 루틴**을 Lean 4와 Z3 SMT로 정밀 타격하여 단기간에 수학적 무결성을 확보했습니다.
+
+둘째, **Gemini 3.8 Flash 기반 멀티 에이전트 협업(\`/teamwork\`)을 통한 '증명의 증명(Meta-Verification)'**입니다. 단일 AI가 작성한 정형 검증 코드에는 여전히 인간의 실수와 유사한 모델링 간극(단일 스텝 가정, 테스트 IP 대역 착오, \`0700\` vs \`0755\` 권한 조건 혼동)이 숨어 있을 수 있습니다. 하지만 **Google Gemini 3.8 Flash**로 구동되는 **탐색관(Explorers) → 엔지니어(Worker) → 리뷰어(Reviewers) → 레드팀 챌린저(Challengers) → 포렌식 및 클린룸 감사관(Auditors)**으로 이어지는 12개의 서브에이전트 파이프라인은 인간 전문가 팀 이상의 집요함으로 모델과 실제 코드 사이의 미세한 틈새를 찾아내고 완벽하게 메웠습니다.
+
+### 🚀 직접 실행해 보기 (Reproduction)
+
+이 모든 수학적 증명과 124개의 적대적 공격 테스트는 슈퍼컴퓨터가 필요하지 않습니다. 이 저장소를 클론한 뒤 터미널에서 아래 명령어를 입력하면 **단 2초 만에** 당신의 컴퓨터에서 모든 증명이 실시간으로 검증됩니다:
+
+\`\`\`bash
+# 1. 마스터 정형 검증 스위트 실행 (Lean 4 + Z3 네트워크 + Z3 호스트 보안)
+./formal-verification/run_verification.sh
+
+# 2. 레드팀 챌린저의 124개 적대적 공격 쿼리 및 100,000회 상태 전이 스트레스 테스트 실행
+uv run --with z3-solver python3 formal-verification/adversarial_challenge.py
+PYTHONPATH=. pytest tests/test_manager_capacity_stress.py tests/test_formal_verification_adversarial.py -v
+\`\`\`
+
+#### GitHub 리포지토리 및 주요 소스 링크
+* 📦 **GitHub 메인 저장소**: [\`weird14446/hypervisor-for-agora\`](https://github.com/weird14446/hypervisor-for-agora)
+* 📄 **상세 라인별 감사 보고서**: [\`formal-verification/AUDIT_REPORT.md\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/formal-verification/AUDIT_REPORT.md)
+* 📐 **Lean 4 정리 증명 코드**: [\`formal-verification/ManagerCapacity.lean\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/formal-verification/ManagerCapacity.lean)
+* 🛡️ **Z3 네트워크 격리 검증기**: [\`formal-verification/verify_network_isolation.py\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/formal-verification/verify_network_isolation.py)
+* 🔒 **Z3 호스트 봉인 검증기**: [\`formal-verification/verify_state_confinement.py\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/formal-verification/verify_state_confinement.py)
+* ⚔️ **레드팀 124개 적대적 검증기**: [\`formal-verification/adversarial_challenge.py\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/formal-verification/adversarial_challenge.py)
+* 🏃 **통합 검증 실행 스크립트**: [\`formal-verification/run_verification.sh\`](https://github.com/weird14446/hypervisor-for-agora/blob/main/formal-verification/run_verification.sh)`,
+      },
     ],
-    references: []
+    references: [
+      {
+        id: 'ref-1',
+        label: '[1]',
+        authors: '이인수 (Obtec Research)',
+        year: 2026,
+        title: 'hypervisor-for-agora: Cloud Hypervisor-based Multi-Tenant Sandbox Orchestration & Formal Verification Suite',
+        venue: 'GitHub Repository (weird14446/hypervisor-for-agora)',
+        url: 'https://github.com/weird14446/hypervisor-for-agora',
+      },
+      {
+        id: 'ref-2',
+        label: '[2]',
+        authors: 'de Moura, L., & Ullrich, S.',
+        year: 2021,
+        title: 'The Lean 4 Theorem Prover and Programming Language',
+        venue: 'Automated Deduction – CADE 28 (v4.35.0)',
+      },
+      {
+        id: 'ref-3',
+        label: '[3]',
+        authors: 'de Moura, L., & Bjørner, N.',
+        year: 2008,
+        title: 'Z3: An Efficient SMT Solver',
+        venue: 'Tools and Algorithms for the Construction and Analysis of Systems (TACAS / v5.3.3.0)',
+      },
+    ],
   },
-  {
-    id: 'school-of-athens-column',
-    slug: 'raphael-school-of-athens-ai-frontier',
-    type: 'column',
-    title: '라파엘로 <아테네 학당>이 21세기 AI 연구소에 던지는 질문: 다학제적 융합과 지식의 지평',
-    subtitle: 'From Platonism to Empiricism: Synthesizing First-Principles Physics with Deep Learning',
-    coverImage: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&w=1600&q=85',
-    authors: [
-      { name: '이인수', affiliation: 'Obtec Research', role: 'Columnist / Researcher' },
-    ],
-    publishedDate: '2026.02.04',
-    journalOrConference: 'Obtec Research Horizon Column Essay #03',
-    doi: '10.48550/OBTEC.2026.0204',
-    category: 'etc.',
-    tags: ['연구원 칼럼', '아테네 학당', '과학철학', '지식의 지평', '다학제'],
-    readTimeMinutes: 7,
-    citationCount: 19,
-    viewsCount: 5600,
-    downloadCount: 420,
-    abstract: '하늘을 가리키는 플라톤의 연역적 이상주의와 땅을 향해 손을 뻗는 아리스토텔레스의 귀납적 실증주의는 오늘날 과학 기반 인공지능(AI for Science) 연구소에서 어떻게 화해하고 있는가? 물리학 제1원리와 대규모 데이터 주도형 학습이 만나는 지점에서 진정한 혁신이 태동한다는 연구원의 철학적 에세이입니다.',
-    keyContributions: [
-      '르네상스 인문학적 성찰을 21세기 거대 인공지능 연구 패러다임에 투영',
-      '순수 물리학 법칙(제1원리)과 데이터 기반 통계적 학습의 상호보완적 융합 논증',
-      '전문성 분절화를 극복하기 위한 다학제 연구소 문화의 본질 고찰',
-    ],
-    pdfDownloadName: 'OBTEC-2026-Athens-Column.pdf',
-    bibtex: `@article{obtec2026athens,
-  title={Raphael's School of Athens and 21st Century AI},
-  author={Lee, Insoo},
-  journal={Obtec Research Column},
-  year={2026}
-}`,
-    apaCitation: '이인수. (2026). 라파엘로 <아테네 학당>이 21세기 AI 연구소에 던지는 질문. Obtec Research Horizon Column.',
-    sections: [
-      {
-        id: 'sec-prologue',
-        title: '바티칸 궁전 서명의 방에 서서',
-        level: 1,
-        content: '라파엘로 산치오가 1511년에 완성한 프레스코화 <아테네 학당> 중앙에는 두 거인이 나란히 서 있습니다. 한 손에 『티마이오스』를 든 플라톤은 하늘을 가리키고, 『니코마코스 윤리학』을 든 아리스토텔레스는 대지를 향해 손바닥을 펴고 있습니다.'
-      },
-      {
-        id: 'sec-platonic-deduction',
-        title: '연역적 제1원리와 귀납적 데이터의 충돌',
-        level: 1,
-        content: '수학적 대칭성과 물리 보존 법칙을 절대적 진리로 여기는 플라톤적 관점과, 관측 데이터의 통계적 패턴만을 신뢰하는 아리스토텔레스적 경험주의는 현대 인공신경망 연구실에서도 매일같이 치열하게 맞부딪히고 있습니다.'
-      },
-      {
-        id: 'sec-synthesis-horizon',
-        title: '새로운 르네상스를 향한 다학제적 종합',
-        level: 1,
-        content: '진정한 학문의 도약은 두 시선이 교차하는 지점에서 발생합니다. 물리학적 불변량(Invariance)을 신경망 귀납 편향(Inductive Bias)으로 내재화할 때, 우리는 비로소 환각 없는 과학 파운데이션 모델을 목도하게 될 것입니다.'
-      }
-    ],
-    references: []
-  }
 ];
