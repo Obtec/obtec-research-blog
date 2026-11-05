@@ -65,7 +65,17 @@ export const PaperCard: React.FC<PaperCardProps> = ({
 
       {/* 4. Subtitle / Excerpt */}
       <p className="text-zinc-400 text-sm sm:text-base font-light leading-relaxed mb-3.5 font-ui max-w-4xl">
-        {paper.abstract.replace(/\$[^$]+\$/g, '수식')}
+        {paper.abstract
+          .split('\n')
+          .filter((line) => {
+            const t = line.trim();
+            return t && !t.startsWith('>') && !t.startsWith('* ') && !t.startsWith('---');
+          })
+          .join(' ')
+          .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+          .replace(/\*\*([^*]+)\*\*/g, '$1')
+          .replace(/`([^`]+)`/g, '$1')
+          .replace(/\$[^$]+\$/g, '수식')}
       </p>
 
       {/* 5. Category & Type Badge */}
