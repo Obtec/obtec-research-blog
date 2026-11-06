@@ -134,7 +134,9 @@ export function App() {
       })
       .sort((a, b) => {
         if (sortBy === 'latest') {
-          return new Date(b.publishedDate).getTime() - new Date(a.publishedDate).getTime();
+          const timeB = new Date(b.publishedDate.replace(/\./g, '-')).getTime() || 0;
+          const timeA = new Date(a.publishedDate.replace(/\./g, '-')).getTime() || 0;
+          return timeB - timeA;
         } else if (sortBy === 'citations') {
           return (b.citationCount || 0) - (a.citationCount || 0);
         } else if (sortBy === 'popular') {
