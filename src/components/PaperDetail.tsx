@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   ArrowLeft, 
   Copy, 
-  Check 
+  Check,
+  FileText
 } from 'lucide-react';
 import { Paper } from '../types/paper';
 import { MathRenderer } from './MathRenderer';
@@ -142,6 +143,9 @@ export const PaperDetail: React.FC<PaperDetailProps> = ({
               <img
                 src={paper.coverImage}
                 alt={paper.title}
+                width={1600}
+                height={762}
+                fetchPriority="high"
                 className="w-full h-full object-cover object-center filter brightness-95 contrast-105"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/10 pointer-events-none" />
@@ -268,9 +272,21 @@ export const PaperDetail: React.FC<PaperDetailProps> = ({
               )}
             </nav>
 
-            {/* Copy Page Pill Button */}
-            <div className="pt-2">
+            {/* Action Pill Buttons */}
+            <div className="pt-2 flex flex-wrap items-center gap-2">
+              {paper.pdfUrl && (
+                <a
+                  href={paper.pdfUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-black hover:bg-zinc-200 text-xs sm:text-sm font-medium transition-all cursor-pointer font-ui"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>원문 PDF</span>
+                </a>
+              )}
               <button
+                type="button"
                 onClick={handleShare}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 text-xs sm:text-sm text-zinc-200 hover:text-white hover:bg-white/10 hover:border-white/40 transition-all cursor-pointer font-ui"
               >

@@ -36,6 +36,8 @@ export const PaperCard: React.FC<PaperCardProps> = ({
           <img
             src={paper.coverImage}
             alt={paper.title}
+            width={1600}
+            height={762}
             className="w-full h-full object-cover object-center group-hover:scale-[1.025] transition-transform duration-700 filter brightness-95 contrast-105"
             loading="lazy"
           />
@@ -69,11 +71,18 @@ export const PaperCard: React.FC<PaperCardProps> = ({
           .split('\n')
           .filter((line) => {
             const t = line.trim();
-            return t && !t.startsWith('>') && !t.startsWith('* ') && !t.startsWith('---');
+            return (
+              t &&
+              !t.startsWith('>') &&
+              !t.startsWith('* ') &&
+              !t.startsWith('---') &&
+              !/^\d+\.\s/.test(t)
+            );
           })
           .join(' ')
           .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
           .replace(/\*\*([^*]+)\*\*/g, '$1')
+          .replace(/\*([^*]+)\*/g, '$1')
           .replace(/`([^`]+)`/g, '$1')
           .replace(/\$[^$]+\$/g, '수식')}
       </p>

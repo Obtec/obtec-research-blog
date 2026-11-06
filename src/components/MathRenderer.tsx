@@ -7,6 +7,21 @@ interface MathRendererProps {
   className?: string;
 }
 
+interface FigurePanelSpec {
+  webp?: string;
+  src: string;
+  alt: string;
+  width: number;
+  height: number;
+  subcaption?: string;
+}
+
+interface FigureBlockSpec {
+  panels: FigurePanelSpec[];
+  caption: string;
+  columns?: 1 | 2;
+}
+
 export const MathRenderer: React.FC<MathRendererProps> = ({ content, className = '' }) => {
   const renderedContent = useMemo(() => {
     if (!content) return null;
@@ -66,7 +81,7 @@ function parseBlocks(lines: string[], keyPrefix: string): React.ReactNode[] {
       continue;
     }
 
-    // 4. Fenced Code Block (```lang ... ```)
+    // 4. Fenced Code / Diagram / Figure Block (```lang ... ```)
     if (trimmed.startsWith('```')) {
       const baseIndent = rawLine.match(/^\s*/)?.[0].length ?? 0;
       const lang = trimmed.slice(3).trim().toLowerCase();
@@ -88,6 +103,8 @@ function parseBlocks(lines: string[], keyPrefix: string): React.ReactNode[] {
       const codeContent = codeLines.join('\n');
       if (lang === 'mermaid') {
         nodes.push(renderMermaidDiagram(codeContent, `${keyPrefix}-mermaid-${startIdx}`));
+      } else if (lang === 'figure') {
+        nodes.push(renderFigureBlock(codeContent, `${keyPrefix}-figure-${startIdx}`));
       } else {
         nodes.push(renderCodeBlock(codeContent, lang, `${keyPrefix}-code-${startIdx}`));
       }
@@ -121,7 +138,7 @@ function parseBlocks(lines: string[], keyPrefix: string): React.ReactNode[] {
       continue;
     }
 
-    // 6. Blockquote (> ...)
+    // 6. Blockquote or GFM Callout Alert (> [!NOTE|TIP|IMPORTANT|WARNING] Title)
     if (trimmed.startsWith('>')) {
       const quoteLines: string[] = [];
       const startIdx = i;
@@ -129,6 +146,16 @@ function parseBlocks(lines: string[], keyPrefix: string): React.ReactNode[] {
         quoteLines.push(lines[i].trim().replace(/^>\s?/, ''));
         i++;
       }
+
+      const alertMatch = quoteLines[0]?.match(/^\[!(NOTE|TIP|IMPORTANT|WARNING)\]\s*(.*)$/i);
+      if (alertMatch) {
+        const kind = alertMatch[1].toUpperCase();
+        const title = alertMatch[2].trim();
+        const bodyLines = quoteLines.slice(1);
+        nodes.push(renderCalloutBox(kind, title, bodyLines, `${keyPrefix}-alert-${startIdx}`));
+        continue;
+      }
+
       nodes.push(
         <blockquote
           key={`${keyPrefix}-quote-${startIdx}`}
@@ -175,7 +202,6 @@ function parseBlocks(lines: string[], keyPrefix: string): React.ReactNode[] {
       while (i < lines.length) {
         const curLine = lines[i];
         if (!curLine.trim()) {
-          // Look ahead to see if the next non-empty line continues this list or list item
           let nextNonEmpty = i + 1;
           while (nextNonEmpty < lines.length && !lines[nextNonEmpty].trim()) {
             nextNonEmpty++;
@@ -206,13 +232,11 @@ function parseBlocks(lines: string[], keyPrefix: string): React.ReactNode[] {
         ) {
           items.push({ head: itemMatch[3], subLines: [] });
           i++;
-          // Collect indented continuation lines (including fenced code blocks inside list item)
           let inFence = false;
           while (i < lines.length) {
             const subLine = lines[i];
             const subTrim = subLine.trim();
             if (!subTrim) {
-              // Check if subsequent non-empty line is still indented under this item
               let look = i + 1;
               while (look < lines.length && !lines[look].trim()) look++;
               if (look < lines.length) {
@@ -308,6 +332,105 @@ function parseBlocks(lines: string[], keyPrefix: string): React.ReactNode[] {
   return nodes;
 }
 
+function renderCalloutBox(
+  kind: string,
+  title: string,
+  bodyLines: string[],
+  key: string
+): React.ReactNode {
+  const palette: Record<string, { border: string; bg: string; titleColor: string }> = {
+    WARNING: {
+      border: 'border-amber-400/40 border-l-4 border-l-amber-400',
+      bg: 'bg-amber-950/20',
+      titleColor: 'text-amber-300',
+    },
+    TIP: {
+      border: 'border-emerald-400/40 border-l-4 border-l-emerald-400',
+      bg: 'bg-emerald-950/20',
+      titleColor: 'text-emerald-300',
+    },
+    IMPORTANT: {
+      border: 'border-sky-400/40 border-l-4 border-l-sky-400',
+      bg: 'bg-sky-950/25',
+      titleColor: 'text-sky-300',
+    },
+    NOTE: {
+      border: 'border-sky-400/35 border-l-4 border-l-sky-400',
+      bg: 'bg-zinc-900/70',
+      titleColor: 'text-sky-200',
+    },
+  };
+  const style = palette[kind] || palette.NOTE;
+
+  return (
+    <aside
+      key={key}
+      aria-label={title || kind}
+      className={`my-6 p-5 rounded-2xl border ${style.border} ${style.bg} space-y-2.5`}
+    >
+      {title && (
+        <div className={`text-sm sm:text-base font-semibold tracking-tight font-ui ${style.titleColor}`}>
+          {renderInlineMathAndFormatting(title)}
+        </div>
+      )}
+      <div className="text-sm sm:text-[15.5px] text-zinc-200 leading-relaxed space-y-2">
+        {parseBlocks(bodyLines, `${key}-body`)}
+      </div>
+    </aside>
+  );
+}
+
+function renderFigureBlock(jsonText: string, key: string): React.ReactNode {
+  let spec: FigureBlockSpec | null = null;
+  try {
+    spec = JSON.parse(jsonText) as FigureBlockSpec;
+  } catch (err) {
+    console.error('Invalid figure JSON block:', err);
+  }
+
+  if (!spec || !Array.isArray(spec.panels) || spec.panels.length === 0) {
+    return null;
+  }
+
+  const isTwoCol = (spec.columns ?? (spec.panels.length > 1 ? 2 : 1)) === 2;
+
+  return (
+    <figure
+      key={key}
+      className="my-8 p-4 sm:p-5 rounded-2xl bg-zinc-950/90 border border-white/10 shadow-2xl space-y-4"
+    >
+      <div className={isTwoCol ? 'grid grid-cols-1 md:grid-cols-2 gap-4 items-end' : 'space-y-4'}>
+        {spec.panels.map((panel, idx) => (
+          <div key={idx} className="space-y-2">
+            <div className="rounded-xl overflow-hidden bg-white p-2 border border-white/10">
+              <picture>
+                {panel.webp && <source srcSet={panel.webp} type="image/webp" />}
+                <img
+                  src={panel.src}
+                  alt={panel.alt}
+                  width={panel.width}
+                  height={panel.height}
+                  loading="lazy"
+                  decoding="async"
+                  className="w-full h-auto block rounded-lg"
+                />
+              </picture>
+            </div>
+            {panel.subcaption && (
+              <div className="text-center text-xs text-zinc-400 font-ui">
+                {renderInlineMathAndFormatting(panel.subcaption)}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      <figcaption className="pt-2 border-t border-white/10 text-xs sm:text-[13.5px] text-zinc-300 leading-relaxed font-ui">
+        {renderInlineMathAndFormatting(spec.caption)}
+      </figcaption>
+    </figure>
+  );
+}
+
 function renderDisplayMathBlock(formula: string, key: string): React.ReactNode {
   const html = renderKatex(formula, true);
   if (html !== null) {
@@ -320,8 +443,12 @@ function renderDisplayMathBlock(formula: string, key: string): React.ReactNode {
     );
   }
   return (
-    <pre key={key} className="text-red-400 text-xs font-mono p-3 rounded-xl bg-zinc-950 border border-red-500/20">
-      {formula}
+    <pre
+      key={key}
+      tabIndex={0}
+      className="text-red-400 text-xs font-mono p-3 rounded-xl bg-zinc-950 border border-red-500/20"
+    >
+      <code>{formula}</code>
     </pre>
   );
 }
@@ -336,15 +463,25 @@ function renderCodeBlock(code: string, lang: string, key: string): React.ReactNo
       <div className="flex items-center justify-between px-4 py-2 bg-white/[0.04] border-b border-white/[0.08] text-[11px] font-mono text-zinc-400">
         <span>{label}</span>
       </div>
-      <pre className="p-4 overflow-x-auto text-xs sm:text-[13px] font-mono text-zinc-200 leading-relaxed">
+      <pre
+        tabIndex={0}
+        className="p-4 overflow-x-auto text-xs sm:text-[13px] font-mono text-zinc-200 leading-relaxed focus:outline-none focus:ring-2 focus:ring-sky-400/50"
+      >
         <code>{code}</code>
       </pre>
     </div>
   );
 }
 
-// Render the 12-Agent Formal Verification Architecture Flowchart from Mermaid syntax
+// Render bespoke dark-glass architecture diagrams from Mermaid blocks
 function renderMermaidDiagram(code: string, key: string): React.ReactNode {
+  if (code.includes('Backpropagation') && code.includes('TWEANN')) {
+    return renderDlVsTweannDiagram(key);
+  }
+  if (code.includes('Net2Wider') && code.includes('Speciation')) {
+    return renderTweannOperatorsDiagram(key);
+  }
+
   return (
     <div
       key={key}
@@ -460,11 +597,152 @@ function renderMermaidDiagram(code: string, key: string): React.ReactNode {
         <summary className="text-[11px] font-mono text-zinc-500 hover:text-zinc-300 cursor-pointer">
           Mermaid 원본 다이어그램 코드 보기
         </summary>
-        <pre className="mt-2 p-3 rounded-xl bg-black/70 border border-white/5 text-[11px] font-mono text-zinc-400 overflow-x-auto">
+        <pre
+          tabIndex={0}
+          className="mt-2 p-3 rounded-xl bg-black/70 border border-white/5 text-[11px] font-mono text-zinc-400 overflow-x-auto"
+        >
           <code>{code}</code>
         </pre>
       </details>
     </div>
+  );
+}
+
+// Figure 4: Classical Backpropagation DL vs. Neuroevolution / TWEANN Paradigm Comparison
+function renderDlVsTweannDiagram(key: string): React.ReactNode {
+  return (
+    <figure
+      key={key}
+      className="my-8 p-5 sm:p-6 rounded-2xl bg-zinc-950/90 border border-white/10 shadow-2xl space-y-5"
+    >
+      {/* Row 1: Backpropagation */}
+      <div className="space-y-2.5">
+        <div className="text-xs sm:text-sm font-semibold text-rose-300 font-ui">
+          1) 정통 딥러닝 (Backpropagation — “오답 노트를 미분하는 모범생”)
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5 text-xs">
+          <div className="p-3 rounded-xl bg-rose-950/25 border border-rose-400/30">
+            <div className="font-semibold text-white mb-0.5">단일 고정 신경망</div>
+            <div className="text-zinc-300 text-[11px]">인간이 (64, 32) 설계</div>
+          </div>
+          <div className="p-3 rounded-xl bg-rose-950/25 border border-rose-400/30">
+            <div className="font-semibold text-white mb-0.5">대리 손실함수 계산</div>
+            <div className="text-zinc-300 text-[11px]">Cross-Entropy (미분 필수)</div>
+          </div>
+          <div className="p-3 rounded-xl bg-rose-950/25 border border-rose-400/30">
+            <div className="font-semibold text-white mb-0.5">역전파 기울기 계산</div>
+            <div className="text-zinc-300 text-[11px]">
+              {renderInlineMathAndFormatting('$\\nabla_{\\boldsymbol{\\theta}} \\mathcal{L}$ 연쇄법칙 미분')}
+            </div>
+          </div>
+          <div className="p-3 rounded-xl bg-rose-950/25 border border-rose-400/30">
+            <div className="font-semibold text-white mb-0.5">가중치 조금씩 수정</div>
+            <div className="text-zinc-300 text-[11px]">
+              {renderInlineMathAndFormatting('$\\boldsymbol{\\theta} \\leftarrow \\boldsymbol{\\theta} - \\eta \\nabla_{\\boldsymbol{\\theta}} \\mathcal{L}$')}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Row 2: TWEANN Neuroevolution */}
+      <div className="space-y-2.5">
+        <div className="text-xs sm:text-sm font-semibold text-sky-300 font-ui">
+          2) 진화 신경망 (Neuroevolution / TWEANN — “돌연변이와 적자생존의 생태계”)
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5 text-xs">
+          <div className="p-3 rounded-xl bg-sky-950/30 border border-sky-400/35">
+            <div className="font-semibold text-white mb-0.5">8개 섬(Island) 생태계</div>
+            <div className="text-zinc-300 text-[11px]">서로 다른 초기 뇌 구조</div>
+          </div>
+          <div className="p-3 rounded-xl bg-sky-950/30 border border-sky-400/35">
+            <div className="font-semibold text-white mb-0.5">뇌 구조 &amp; 가중치 변이</div>
+            <div className="text-zinc-300 text-[11px]">층 증식·뉴런 확장·교배</div>
+          </div>
+          <div className="p-3 rounded-xl bg-sky-950/30 border border-sky-400/35">
+            <div className="font-semibold text-white mb-0.5">진짜 목표 직접 채점</div>
+            <div className="text-zinc-300 text-[11px]">비미분 Macro-F1 평가</div>
+          </div>
+          <div className="p-3 rounded-xl bg-sky-950/30 border border-sky-400/35">
+            <div className="font-semibold text-white mb-0.5">적자생존 &amp; 다음 세대</div>
+            <div className="text-zinc-300 text-[11px]">최고 적합도 종만 생존</div>
+          </div>
+        </div>
+      </div>
+
+      <figcaption className="pt-2 border-t border-white/10 text-xs sm:text-[13.5px] text-zinc-300 leading-relaxed font-ui">
+        <strong>Figure 4:</strong> 정통 역전파 딥러닝(DL)과 진화 신경망(EDL/TWEANN)의 학습 원리 비교. 역전파는 미분 가능한 대리 손실함수를 필요로 하지만, 진화 신경망은 미분 불가능한 실제 목표 지표(Macro-F1)를 직접 적합도(Fitness)로 삼아 가중치와 뇌 구조를 함께 진화시킵니다.
+      </figcaption>
+    </figure>
+  );
+}
+
+// Figure 5: TWEANN 6 Function-Preserving Net2Net Operators & Speciation Protection
+function renderTweannOperatorsDiagram(key: string): React.ReactNode {
+  const operators = [
+    {
+      title: '1. Net2Wider 뉴런 확장',
+      desc: '기존 뉴런 복제 및 출력 가중치 $\\frac{1}{2}$ 분할',
+    },
+    {
+      title: '2. Net2Deeper 은닉층 증식',
+      desc: '항등 행렬($\\mathbf{W} \\approx \\mathbf{I}$) 기반 신규 층 삽입',
+    },
+    {
+      title: '3. 입력 스킵 고속도로 (+skip)',
+      desc: '원본 10차원 별빛 특성을 깊은 층에 직결',
+    },
+    {
+      title: '4. 활성화 함수 진화',
+      desc: '층별로 ReLU / GELU / SiLU / ELU 교체',
+    },
+    {
+      title: '5. 뉴런 & 시냅스 가지치기',
+      desc: '$\\ell_1$ 중요도 하위 뉴런·미세 시냅스 제거',
+    },
+    {
+      title: '6. 이종 뇌 구조 간 상동 교배',
+      desc: '서로 다른 위상 간 공통 서브행렬 교차',
+    },
+  ];
+
+  return (
+    <figure
+      key={key}
+      className="my-8 p-5 sm:p-6 rounded-2xl bg-zinc-950/90 border border-white/10 shadow-2xl space-y-4"
+    >
+      {/* Parent Genome Header */}
+      <div className="p-3.5 rounded-xl bg-sky-950/45 border border-sky-400/40 text-center text-xs sm:text-sm font-semibold text-white">
+        {renderInlineMathAndFormatting(
+          '부모 신경망 개체 (Parent Topology Genome $\\mathcal{G}_{\\text{topo}}$ & Weights $\\boldsymbol{\\theta}$)'
+        )}
+      </div>
+
+      {/* 6 Operators Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+        {operators.map((op, idx) => (
+          <div key={idx} className="p-3 rounded-xl bg-zinc-900/90 border border-sky-400/25 space-y-1">
+            <div className="font-semibold text-sky-200">{op.title}</div>
+            <div className="text-zinc-300 text-[11.5px] leading-snug">
+              {renderInlineMathAndFormatting(op.desc)}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Speciation Protection Box */}
+      <div className="p-4 rounded-xl bg-emerald-950/25 border border-emerald-400/35 text-center space-y-1">
+        <div className="text-xs sm:text-sm font-semibold text-emerald-300">
+          종 분화 보호 (Speciation Protection) &amp; 적자생존 검증
+        </div>
+        <div className="text-xs text-zinc-200">
+          짧은 국소 적응 (20 미니배치) + 결정 경계 ES 조율 후, <strong>검증 Macro-F1이 부모를 능가하면 새로운 종(Topology)으로 진화 확정!</strong>
+        </div>
+      </div>
+
+      <figcaption className="pt-2 border-t border-white/10 text-xs sm:text-[13.5px] text-zinc-300 leading-relaxed font-ui">
+        <strong>Figure 5:</strong> TWEANN의 6가지 함수 보존형 뇌 구조 진화 연산자와 종 분화 보호 흐름도. 뉴런을 복제할 때 가중치를 절반씩 나누고(Net2Wider), 새 층을 추가할 때 항등 행렬로 초기화(Net2Deeper)하여 뇌 구조 변화 직후에도 기존 지식을 잃지 않습니다.
+      </figcaption>
+    </figure>
   );
 }
 
