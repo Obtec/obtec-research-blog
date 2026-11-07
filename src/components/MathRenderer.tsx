@@ -475,6 +475,9 @@ function renderCodeBlock(code: string, lang: string, key: string): React.ReactNo
 
 // Render bespoke dark-glass architecture diagrams from Mermaid blocks
 function renderMermaidDiagram(code: string, key: string): React.ReactNode {
+  if (code.includes('GravNet') && code.includes('Plummer')) {
+    return renderGravNetPipelineDiagram(key);
+  }
   if (code.includes('Backpropagation') && code.includes('TWEANN')) {
     return renderDlVsTweannDiagram(key);
   }
@@ -741,6 +744,80 @@ function renderTweannOperatorsDiagram(key: string): React.ReactNode {
 
       <figcaption className="pt-2 border-t border-white/10 text-xs sm:text-[13.5px] text-zinc-300 leading-relaxed font-ui">
         <strong>Figure 5:</strong> TWEANN의 6가지 함수 보존형 뇌 구조 진화 연산자와 종 분화 보호 흐름도. 뉴런을 복제할 때 가중치를 절반씩 나누고(Net2Wider), 새 층을 추가할 때 항등 행렬로 초기화(Net2Deeper)하여 뇌 구조 변화 직후에도 기존 지식을 잃지 않습니다.
+      </figcaption>
+    </figure>
+  );
+}
+
+// Figure 1 (GravNet): 4-Stage Physical Inference & Zero-BPTT Tidal Plasticity Architecture
+function renderGravNetPipelineDiagram(key: string): React.ReactNode {
+  return (
+    <figure
+      key={key}
+      className="my-8 p-5 sm:p-6 rounded-2xl bg-zinc-950/90 border border-white/10 shadow-2xl space-y-4"
+    >
+      {/* 4-Stage Forward Physical Trajectory */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+        <div className="p-3.5 rounded-xl bg-zinc-900/90 border border-white/15 space-y-1.5 flex flex-col justify-between">
+          <div className="font-semibold text-white text-[12.5px]">1. 천체 관측 입력</div>
+          <div className="text-zinc-200">
+            {renderInlineMathAndFormatting('$\\mathbf{x} \\in \\mathbb{R}^{10}$')}
+          </div>
+          <div className="text-zinc-400 text-[11px] leading-snug">
+            {renderInlineMathAndFormatting('($u, g, r, i, z$, 색지수 4종, $z$)')}
+          </div>
+        </div>
+
+        <div className="p-3.5 rounded-xl bg-amber-950/25 border border-amber-400/35 space-y-1.5 flex flex-col justify-between">
+          <div className="font-semibold text-amber-200 text-[12.5px]">2. 다중 해상도 분광 렌즈</div>
+          <div className="text-zinc-200">
+            {renderInlineMathAndFormatting('$\\Phi(\\mathbf{x}) \\in \\mathbb{R}^{3826}$')}
+          </div>
+          <div className="text-zinc-300 text-[11px] leading-snug">
+            {renderInlineMathAndFormatting('1D 도플러 파동 + 10D 푸리에<br>원점 발사 $\\mathbf{q}_{\\text{orb}}(0) = (0, 0)$')}
+          </div>
+        </div>
+
+        <div className="p-3.5 rounded-xl bg-sky-950/30 border border-sky-400/35 space-y-1.5 flex flex-col justify-between">
+          <div className="font-semibold text-sky-200 text-[12.5px]">3. 플러머 중력장 궤도 적분</div>
+          <div className="text-zinc-200">
+            {renderInlineMathAndFormatting('$\\mathbf{F}_{\\text{grav}}(\\mathbf{q}) = -\\nabla_{\\mathbf{q}} U(\\mathbf{q})$')}
+          </div>
+          <div className="text-zinc-300 text-[11px] leading-snug">
+            {renderInlineMathAndFormatting('18개 헤일로 + 허블 감쇠 $\\gamma > 0$<br>심플렉틱 리프프로그 ($T = 10$)')}
+          </div>
+        </div>
+
+        <div className="p-3.5 rounded-xl bg-emerald-950/25 border border-emerald-400/35 space-y-1.5 flex flex-col justify-between">
+          <div className="font-semibold text-emerald-200 text-[12.5px]">
+            {renderInlineMathAndFormatting('4. 우물 포획 & $L_1$ 진단')}
+          </div>
+          <div className="text-zinc-200">
+            {renderInlineMathAndFormatting('$P(c \\mid \\mathbf{q}_T) \\propto e^{-\\beta U_c + \\nu_c}$')}
+          </div>
+          <div className="text-zinc-300 text-[11px] leading-snug">
+            {renderInlineMathAndFormatting('초은하단 포획 판정 및<br>라그랑주 장벽 $\\Delta E_{L_1}$ 산출')}
+          </div>
+        </div>
+      </div>
+
+      {/* Zero-BPTT Terminal Tidal Plasticity Feedback Loop */}
+      <div className="p-3.5 rounded-xl bg-rose-950/20 border border-dashed border-rose-400/45 text-center space-y-1">
+        <div className="text-xs font-semibold text-rose-300 font-ui">
+          <span aria-hidden="true">↺ </span>
+          {renderInlineMathAndFormatting(
+            '무-BPTT 시공간 질량·헤일로 조각 ($\\Delta G_{c,m}, \\Delta \\boldsymbol{\\mu}_{c,m}$) 및 종착 조석력 헤비안 가소성 ($\\mathbf{f}_{\\text{tidal}}$)'
+          )}
+        </div>
+        <div className="text-[11px] text-zinc-300">
+          {renderInlineMathAndFormatting(
+            '시간 역전파(BPTT) 없이 종착 볼츠만 포획 잔차 $r_c = \\mathbb{I}[c = y] - P(c \\mid \\mathbf{q}_T)$만으로 3단계 중력원($G_{c,m}, \\boldsymbol{\\mu}_{c,m}$)과 2단계 발사 렌즈($\\mathbf{W}_p$)를 직접 조각'
+          )}
+        </div>
+      </div>
+
+      <figcaption className="pt-2 border-t border-white/10 text-xs sm:text-[13.5px] text-zinc-300 leading-relaxed font-ui">
+        <strong>Figure 1:</strong> GravNet의 4단계 물리 추론 및 무역전파(Zero-BPTT) 조석 학습 아키텍처 개요도.
       </figcaption>
     </figure>
   );

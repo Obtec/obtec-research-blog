@@ -11,6 +11,447 @@ export const CATEGORIES = [
 
 export const MOCK_PAPERS: Paper[] = [
   {
+    id: 'gravnet-astrophysical-dynamical-network',
+    slug: 'gravnet-astrophysical-potential-dynamical-network',
+    type: 'report',
+    title: '시공간 중력장 궤도 신경망 (GravNet) 개발 보고서',
+    subtitle: '오차 역전파 없이 다중 헤일로 플러머 중력장과 심플렉틱 궤도 역학만으로 별·은하·퀘이사를 분류하다',
+    coverImage: '/assets/gravnet/cover-gravnet.webp',
+    authors: [
+      { name: '이인수', affiliation: 'Obtec Research', role: 'Author' },
+    ],
+    publishedDate: '2026.11.07',
+    journalOrConference: 'Obtec Research · Astrophysical Dynamical Machine Learning',
+    doi: '10.48550/OBTEC.2026.1108',
+    category: '물리학',
+    tags: [
+      '천체역학',
+      'GravNet',
+      '플러머 퍼텐셜',
+      '심플렉틱 적분',
+      '무역전파 학습',
+      'SDSS-17',
+    ],
+    readTimeMinutes: 16,
+    citationCount: 0,
+    viewsCount: 1,
+    downloadCount: 0,
+    featured: true,
+    abstract: `* **저자**: 이인수 (Obtec Research)
+* **패러다임**: Astrophysical Dynamical Machine Learning · Zero-Backpropagation Paradigm
+* **데이터셋**: SDSS-17 (정제 표본 99,999천체)
+* **패러다임 비교**: 역전파 DL vs. 위상 진화 TWEANN vs. 중력 동역학 GravNet
+
+---
+
+전통적인 딥러닝(DL)은 층별 행렬곱과 전역 오차 역전파(Backpropagation)에 의존하며, 진화 신경망(EDL/TWEANN)은 세대별 돌연변이와 자연선택을 모사합니다. 본 연구에서는 제3의 독창적 패러다임으로, 천체 분류기 내부에 실제 천체역학의 다중 헤일로 플러머 중력장(Multi-Halo Plummer Gravitational Potential)과 심플렉틱 감쇠 리프프로그(Symplectic Dissipative Leapfrog) 적분기를 구축한 GravNet을 제안하고 개발하였습니다.
+
+> [!IMPORTANT] 핵심 연구 요약 (Executive Summary)
+> * **완전 무역전파(100% Backpropagation-Free) 학습**: 궤도를 시간 역방향으로 미분(BPTT)하지 않고, 종착 위치에서의 볼츠만 포획 잔차와 **종착 조석력 벡터(Terminal Tidal Force Vector)**만으로 중력 질량, 헤일로 좌표, 발사 렌즈를 직접 조각한다.
+> * **수학적·물리적 엄밀성 검증**: 기호 연산(SymPy)으로 해석적 중력장 잔차 $0$ 및 해밀토니안 소산 항등식 $\\frac{dH}{dt} + \\gamma \\|\\mathbf{p}\\|_2^2 = 0$을 증명하고, 유한차분 오차 $1.84 \\times 10^{-10}$ 이내임을 수치 검증하였다.
+> * **기존 신경망을 상회하는 분류 정확도**: 20,000개 테스트 천체에서 단일 우주 GravNet이 **정확도 97.55%** ($\\text{Macro-}F_1$ **0.9718**, 학습 40.69초), 3-우주 다중우주(Multiverse)가 **정확도 97.59%** ($\\text{Macro-}F_1$ **0.9724**)를 달성하여 역전파 DL 단일/3-Seed MLP(97.37%/97.42%)와 진화 신경망 EDL/TWEANN(97.45%)을 모두 넘어섰다. 특히 테스트 항성(STAR) 4,319개를 단 1건의 누락도 없이 **100.00% 재현율(4,319/4,319)**로 포획하였다.
+> * **라그랑주 $L_1$ 안장점 기반 물리적 불확실성 해부**: 두 은하단 중력이 비기는 라그랑주 $L_1$ 능선 장벽 $\\Delta E_{L_1}$을 통해, 별도의 불확실성 모듈 없이도 모은하 빛이 혼입된 저적색편이 퀘이사 경계군(하위 5% 경계군 정확도 75.50% vs. 상위 95% 깊은 우물 포획군 **98.71%**)을 자연스럽게 분리하였다.`,
+    keyContributions: [
+      '완전 무역전파(100% Backpropagation-Free) 학습: 궤도를 시간 역방향으로 미분(BPTT)하지 않고 종착 볼츠만 포획 잔차와 종착 조석력 벡터(Terminal Tidal Force Vector)만으로 중력 질량, 헤일로 좌표, 발사 렌즈를 직접 조각',
+      '수학적·물리적 엄밀성 검증: SymPy 기호 대수로 해석적 중력장 잔차 0 및 해밀토니안 소산 항등식 dH/dt + γ‖p‖₂² = 0을 증명하고, 2차 중앙 유한차분 오차 1.836×10⁻¹⁰ 이내 및 전 스텝 에너지 단조 감소를 수치 검증',
+      '기존 정적·진화 신경망 상회 정확도 달성: SDSS-17 테스트 천체 20,000개에서 단일 우주 97.55%(Macro-F1 0.9718, 40.69s), 3-우주 다중우주 97.59%(Macro-F1 0.9724)를 달성하고 항성(STAR) 4,319개 전수 포획(100.00% Recall)',
+      '라그랑주 L1 안장점 기반 물리적 불확실성 해부: 퍼텐셜 장벽 ΔE_L1 지표만으로 상위 95% 깊은 우물 포획군(정확도 98.71%)과 모은하 별빛이 혼입된 저적색편이 퀘이사 경계군(하위 5%, 정확도 75.50%)을 자발적으로 분리',
+    ],
+    pdfDownloadName: 'gravnet_research_report.pdf',
+    pdfUrl: '/papers/gravnet_research_report.pdf',
+    bibtex: `@techreport{lee2026gravnet,
+  title={시공간 중력장 궤도 신경망 (GravNet) 개발 보고서: 오차 역전파 없이 다중 헤일로 플러머 중력장과 심플렉틱 궤도 역학만으로 별·은하·퀘이사를 분류하다},
+  author={Lee, Insoo},
+  institution={Obtec Research},
+  year={2026},
+  month={11}
+}`,
+    apaCitation: '이인수. (2026). 시공간 중력장 궤도 신경망 (GravNet) 개발 보고서: 오차 역전파 없이 다중 헤일로 플러머 중력장과 심플렉틱 궤도 역학만으로 별·은하·퀘이사를 분류하다. Obtec Research.',
+    sections: [
+      {
+        id: '1-서론-왜-중력장-동역학으로-별빛을-분류하는가',
+        title: '1. 서론: 왜 ‘중력장 동역학’으로 별빛을 분류하는가?',
+        level: 1,
+        content: `슬론 디지털 전천 탐사(SDSS-17)의 천체 분류 문제는 5개 측광 필터 등급($u, g, r, i, z$), 인접 파장 색지수 4종($u - g, g - r, r - i, i - z$), 그리고 분광 적색편이($z$, \`redshift\`)로 이루어진 입력 벡터 $\\mathbf{x} \\in \\mathbb{R}^{10}$로부터 해당 천체가 은하(\`GALAXY\`), 퀘이사(\`QSO\`), 항성(\`STAR\`) 중 무엇인지 판별하는 과제이다.
+
+앞서 구축한 두 파이프라인은 서로 다른 철학으로 이 문제를 해결하였다.
+
+1. **전역 오차 역전파 딥러닝 (\`DL/\`)**: 인간이 설계한 고정 다층 퍼셉트론($10 \\to 64 \\to 32 \\to 3$)에서 연쇄법칙(Chain Rule)으로 전역 손실 기울기를 역전파하여 테스트 정확도 **97.37%**(3-Seed 앙상블 **97.42%**)를 기록하였다.
+2. **위상·가중치 동시 진화 신경망 (\`EDL/TWEANN\`)**: 8개의 독립된 섬에서 Net2Net 함수 보존 변이와 결정 경계 진화 전략을 통해 \`10 -> [104:gelu] -> [48:gelu] -> [48+skip:silu] -> 3\` 구조를 스스로 발명하여 **97.43%**(상위 4섬 앙상블 **97.45%**)를 달성하였다.
+
+그러나 두 방식 모두 **“이산적인 은닉층 행렬곱과 비선형 활성화 함수의 합성”**이라는 정적 계산 그래프 틀 안에 머물러 있다. 본 연구는 천체물리 도메인 그 자체에서 영감을 얻어 근본적인 질문을 던졌다.
+
+> *“은닉층을 쌓는 대신, 관측된 별빛 $\\mathbf{x}$를 인공 시공간 속의 천체 입자로 발사하여 실제 구상성단과 은하 헤일로가 따르는 **플러머 중력 방정식(Plummer Gravitational Law)**에 따라 스스로 궤도 운동하며 자신의 은하단 중력 우물로 낙하·포획되게 만들 수 없을까?”*
+
+이 발상으로부터 탄생한 **GravNet (Astrophysical Potential Dynamical Network)**의 전체 물리 파이프라인을 그림 1에 도식화하였다.
+
+\`\`\`mermaid
+flowchart LR
+  Input["1. 천체 관측 입력 x in R^10"] --> Lens["2. 다중 해상도 분광 렌즈 Phi(x) in R^3826"]
+  Lens --> Orbit["3. 플러머 중력장 궤도 적분 (GravNet Plummer Leapfrog T=10)"]
+  Orbit --> Capture["4. 우물 포획 & L1 진단"]
+  Capture -.->|"Zero-BPTT 조석 학습"| Orbit
+  Capture -.->|"종착 조석력 f_tidal"| Lens
+\`\`\``,
+      },
+      {
+        id: '2-물리-수학적-정식화-및-단계별-엄밀-유도',
+        title: '2. 물리·수학적 정식화 및 단계별 엄밀 유도',
+        level: 1,
+        content: `### 2.1 섬유 다발 위상 공간과 다중 해상도 천체 분광 렌즈
+
+관측된 천체 데이터 $\\mathbf{x} \\in \\mathbb{R}^{d_{\\text{in}}}$ ($d_{\\text{in}} = 10$)를 위상 공간(Phase Space) $\\mathcal{P} = \\mathbb{R}^d \\times \\mathbb{R}^d$ ($d = 6$) 위의 단위 질량($m = 1$) 시험 입자 상태 $(\\mathbf{q}(t), \\mathbf{p}(t))$로 사상한다. 이때 위치 공간 $\\mathbb{R}^6$은 기하학적 역할이 분리된 직합(Direct Sum) 구조를 갖는다:
+
+$$
+\\mathbf{q}(t) = \\bigl(\\mathbf{q}_{\\text{orb}}(t),\\; \\mathbf{q}_{\\text{spec}}(t)\\bigr) \\in \\mathbb{R}^2 \\oplus \\mathbb{R}^4. \\tag{1}
+$$
+
+여기서 $\\mathbf{q}_{\\text{orb}}(t) = (q_1(t), q_2(t))^\\top \\in \\mathbb{R}^2$는 세 천체 종족의 초은하단 중심 $\\mathbf{S}_c \\in \\mathbb{R}^6$ ($c \\in \\{0, 1, 2\\}$)가 반지름 $R_{\\text{sc}} = 3.2$, 위상각 $\\theta_c \\in \\{\\frac{\\pi}{2}, \\frac{7\\pi}{6}, \\frac{11\\pi}{6}\\}$ ($120^\\circ$ 정삼각형 대칭)로 배치된 **2차원 초은하단 궤도 평면**이며, $\\mathbf{q}_{\\text{spec}}(t) \\in \\mathbb{R}^4$는 종족 내부의 세부 천체군(적색 타원은하 vs. 청색 나선은하, 고적색편이 퀘이사 vs. 세이퍼트 활동은하핵 등)을 분해하는 **4차원 분광 섬유(Spectral Fiber)**이다.
+
+극단적 이상치에 대한 수치 안정성을 위해 부드러운 포화 사상 $\\tilde{\\mathbf{x}} = 15\\tanh(\\mathbf{x}/15) \\in (-15, 15)^{10}$을 거친 후, 보크너 정리(Bochner's Theorem; Rahimi & Recht, 2007)와 도플러 주파수 격자를 결합한 **다중 해상도 분광 렌즈** $\\Phi(\\mathbf{x}) \\in \\mathbb{R}^M$ ($M = 3,826$)를 다음과 같이 정의한다:
+
+$$
+\\Phi(\\mathbf{x}) = \\left[\\, 1 \\;\\Big\\|\\; \\tilde{\\mathbf{x}}^\\top \\;\\Big\\|\\; \\frac{1}{4}\\bigl(\\tilde{x}_i \\tilde{x}_j\\bigr)_{1 \\le i \\le j \\le 10} \\;\\Big\\|\\; \\frac{1}{\\sqrt{F}}\\sin(\\tilde{\\mathbf{x}} \\otimes \\boldsymbol{\\omega}_{\\text{1D}}) \\;\\Big\\|\\; \\frac{1}{\\sqrt{F}}\\cos(\\tilde{\\mathbf{x}} \\otimes \\boldsymbol{\\omega}_{\\text{1D}}) \\;\\Big\\|\\; \\sqrt{\\frac{2}{M_{\\text{RFF}}}}\\cos(\\tilde{\\mathbf{x}}^\\top \\boldsymbol{\\Omega} + \\boldsymbol{\\varphi}^\\top) \\,\\right]^\\top. \\tag{2}
+$$
+
+여기서 $\\boldsymbol{\\omega}_{\\text{1D}} \\in \\mathbb{R}^F$ ($F = 44$)는 $\\omega_{\\min} = 0.25$부터 $\\omega_{\\max} = 120.0$까지 기하 급수로 배치된 1차원 주파수 격자($\\omega_k = 0.25 \\times (480)^{k/(F-1)}$)이며, $\\boldsymbol{\\Omega} \\in \\mathbb{R}^{10 \\times M_{\\text{RFF}}}$ ($M_{\\text{RFF}} = 2,880$)는 다중 대역폭 $\\sigma_b \\in \\{0.25, 0.60, 1.40, 3.20\\}$ 가우시안 스펙트럼 측도에서 추출된 비등방성 주파수 행렬이다.
+
+**우주 원점 발사 조건(Cosmic-Origin Launch Constraint)**: 시각 $t = 0$에서 모든 천체가 궤도 평면 위에서 어떠한 사전 편향도 없이 출발하도록 발사 행렬 $\\mathbf{W}_q \\in \\mathbb{R}^{M \\times 6}$의 처음 두 열을 영벡터로 강제한다($[\\mathbf{W}_q]_{:,1:2} = \\mathbf{0}$):
+
+$$
+\\mathbf{q}_{\\text{orb}}(0) = \\mathbf{0}_2, \\qquad \\mathbf{q}_{\\text{spec}}(0) = \\Phi(\\mathbf{x})^\\top [\\mathbf{W}_q]_{:,3:6}, \\qquad \\mathbf{p}(0) = \\Phi(\\mathbf{x})^\\top \\mathbf{W}_p. \\tag{3}
+$$
+
+따라서 궤도 적분을 수행하지 않은 $T = 0$ 상태에서는 모든 천체가 궤도 평면 원점 $(0, 0)$에 놓여 분류가 불가능하며, 오직 $t > 0$ 동안의 중력 궤도 운동을 통해서만 초은하단 포획이 이루어진다.
+
+---
+
+### 2.2 다중 헤일로 플러머 중력 퍼텐셜과 해석적 중력장 유도
+
+점질량 뉴턴 중력 퍼텐셜 $U_{\\text{Newton}}(\\mathbf{q}) = -G / \\|\\mathbf{q} - \\boldsymbol{\\mu}\\|_2$는 $\\mathbf{q} \\to \\boldsymbol{\\mu}$일 때 분모가 $0$이 되어 수치 적분 시 무한대 발산(Singularity)을 일으킨다. 이를 방지하기 위해 실제 천체물리학에서 구상성단과 은하 암흑물질 헤일로의 밀도 분포를 기술하는 **플러머 퍼텐셜(Plummer Potential; Plummer, 1911)**을 도입한다.
+
+각 클래스 $c \\in \\{0, 1, 2\\}$가 $K = 6$개의 응축된 중력 핵 위치 $\\boldsymbol{\\mu}_{c,m} \\in \\mathbb{R}^d$와 양의 중력 질량 $G_{c,m} > 0$ ($m = 1, \\dots, K$, 총 $3K = 18$개 중력원)을 보유할 때, 클래스별 플러머 퍼텐셜 $U_c(\\mathbf{q})$와 우주 조화 가둠(Harmonic Cosmic Confinement)을 포함한 총 퍼텐셜 에너지 $U(\\mathbf{q})$를 다음과 같이 정의한다:
+
+$$
+U_c(\\mathbf{q}) = -\\sum_{m=1}^{K} \\frac{G_{c,m}}{\\sqrt{\\|\\mathbf{q} - \\boldsymbol{\\mu}_{c,m}\\|_2^2 + \\epsilon^2}}, \\qquad U(\\mathbf{q}) = \\sum_{c=0}^{2} U_c(\\mathbf{q}) + \\frac{1}{2}\\kappa \\|\\mathbf{q}\\|_2^2. \\tag{4}
+$$
+
+**정의역 및 정칙성 제약 조건**: 연화 길이(Softening Length) $\\epsilon > 0$, 중력 질량 $G_{c,m} > 0$, 가둠 탄성 계수 $\\kappa > 0$으로 선언한다. 모든 $\\mathbf{q} \\in \\mathbb{R}^d$에 대하여 제곱근 내부의 값 $r_{c,m}^2(\\mathbf{q}) \\triangleq \\|\\mathbf{q} - \\boldsymbol{\\mu}_{c,m}\\|_2^2 + \\epsilon^2 \\ge \\epsilon^2 > 0$이므로, 분모는 전 공간에서 결코 $0$이 되지 않으며 $U \\in C^\\infty(\\mathbb{R}^d)$ 급의 매끄러운 함수가 된다.
+
+이제 자동미분(Autograd)에 의존하지 않기 위해 위치 성분 $q_j$ ($j \\in \\{1, \\dots, d\\}$)에 대한 편미분을 연쇄법칙으로 단계별 전개한다:
+
+$$
+\\begin{aligned}
+\\frac{\\partial U(\\mathbf{q})}{\\partial q_j} &= \\sum_{c=0}^{2} \\sum_{m=1}^{K} \\left( -G_{c,m} \\frac{\\partial}{\\partial q_j} \\bigl(r_{c,m}^2(\\mathbf{q})\\bigr)^{-1/2} \\right) + \\frac{1}{2}\\kappa \\frac{\\partial}{\\partial q_j} \\sum_{l=1}^{d} q_l^2 \\\\
+&= \\sum_{c=0}^{2} \\sum_{m=1}^{K} \\left( -G_{c,m} \\left(-\\frac{1}{2}\\right) \\bigl(r_{c,m}^2(\\mathbf{q})\\bigr)^{-3/2} \\cdot 2(q_j - \\mu_{c,m,j}) \\right) + \\kappa q_j \\\\
+&= \\sum_{c=0}^{2} \\sum_{m=1}^{K} G_{c,m} \\frac{q_j - \\mu_{c,m,j}}{\\left(\\|\\mathbf{q} - \\boldsymbol{\\mu}_{c,m}\\|_2^2 + \\epsilon^2\\right)^{3/2}} + \\kappa q_j.
+\\end{aligned} \\tag{5}
+$$
+
+벡터 형태로 결합하면 입자가 받는 닫힌 수식(Closed-Form) 중력장 $\\mathbf{F}_{\\text{grav}}(\\mathbf{q}) = -\\nabla_{\\mathbf{q}} U(\\mathbf{q})$를 얻는다:
+
+$$
+\\mathbf{F}_{\\text{grav}}(\\mathbf{q}) = -\\sum_{c=0}^{2} \\sum_{m=1}^{K} G_{c,m} \\frac{\\mathbf{q} - \\boldsymbol{\\mu}_{c,m}}{\\left(\\|\\mathbf{q} - \\boldsymbol{\\mu}_{c,m}\\|_2^2 + \\epsilon^2\\right)^{3/2}} - \\kappa \\mathbf{q}. \\tag{6}
+$$
+
+---
+
+### 2.3 리아푸노프 해밀토니안 소산 정리와 심플렉틱 리프프로그 적분기
+
+보존 중력장만 존재하면 초기 운동 에너지를 지닌 천체 입자가 우물 바닥에 정착하지 못하고 영구히 진동하거나 쌍곡선 궤도로 이탈할 수 있다. 이를 물리적으로 해결하기 위해 우주 팽창에 따른 **허블 마찰 계수(Hubble Drag)** $\\gamma > 0$을 도입한 감쇠 해밀턴 동역학계를 구성한다:
+
+$$
+\\frac{d\\mathbf{q}}{dt} = \\mathbf{p}, \\qquad \\frac{d\\mathbf{p}}{dt} = -\\nabla_{\\mathbf{q}} U(\\mathbf{q}) - \\gamma \\mathbf{p}. \\tag{7}
+$$
+
+> [!TIP] 정리 1 (리아푸노프 에너지 단조 소산 및 평형점 수렴성)
+> 연화 길이 $\\epsilon > 0$, 중력 질량 $G_{c,m} > 0$, 가둠 계수 $\\kappa > 0$, 허블 마찰 계수 $\\gamma > 0$일 때, 총 역학적 해밀토니안 $H(\\mathbf{q}, \\mathbf{p}) = \\frac{1}{2}\\|\\mathbf{p}\\|_2^2 + U(\\mathbf{q})$는 아래 유계(Bounded Below)이자 방사 강제성(Radially Coercive)을 가지며, 궤적을 따라 단조 감소하여 모든 초기 상태 $(\\mathbf{q}(0), \\mathbf{p}(0)) \\in \\mathbb{R}^{2d}$가 정지 평형 집합 $\\mathcal{E} = \\{(\\mathbf{q}^*, \\mathbf{0}) \\mid \\nabla_{\\mathbf{q}} U(\\mathbf{q}^*) = \\mathbf{0}\\}$으로 수렴한다.
+
+#### 증명 (단계별 유도)
+
+1. **하계 존재성 및 강제성(Coercivity)**: 모든 $\\mathbf{q} \\in \\mathbb{R}^d$에 대해 연화 거리 $r_{c,m}(\\mathbf{q}) = \\sqrt{\\|\\mathbf{q} - \\boldsymbol{\\mu}_{c,m}\\|_2^2 + \\epsilon^2} \\ge \\epsilon$이므로 각 중력 우물 항은 $-G_{c,m} / r_{c,m}(\\mathbf{q}) \\ge -G_{c,m} / \\epsilon$을 만족한다. 따라서
+
+$$
+H(\\mathbf{q}, \\mathbf{p}) \\ge \\frac{1}{2}\\|\\mathbf{p}\\|_2^2 + \\frac{1}{2}\\kappa \\|\\mathbf{q}\\|_2^2 - \\frac{1}{\\epsilon}\\sum_{c=0}^{2}\\sum_{m=1}^{K} G_{c,m} > -\\infty \\tag{8}
+$$
+
+이며, $\\kappa > 0$이므로 $\\|(\\mathbf{q}, \\mathbf{p})\\|_2 \\to \\infty$일 때 $H(\\mathbf{q}, \\mathbf{p}) \\to +\\infty$이다. 즉 모든 부분준위집합(Sublevel Set) $\\Omega_c = \\{(\\mathbf{q}, \\mathbf{p}) \\mid H(\\mathbf{q}, \\mathbf{p}) \\le H(\\mathbf{q}(0), \\mathbf{p}(0))\\}$은 유계 닫힌집합(Compact Set)이다.
+
+2. **궤도 시간 도함수 유도**: 다변수 연쇄법칙과 식 (7)을 대입하면
+
+$$
+\\begin{aligned}
+\\frac{d}{dt} H\\bigl(\\mathbf{q}(t), \\mathbf{p}(t)\\bigr) &= \\langle \\nabla_{\\mathbf{q}} H, \\dot{\\mathbf{q}} \\rangle + \\langle \\nabla_{\\mathbf{p}} H, \\dot{\\mathbf{p}} \\rangle \\\\
+&= \\langle \\nabla_{\\mathbf{q}} U(\\mathbf{q}), \\mathbf{p} \\rangle + \\langle \\mathbf{p}, -\\nabla_{\\mathbf{q}} U(\\mathbf{q}) - \\gamma \\mathbf{p} \\rangle \\\\
+&= \\langle \\nabla_{\\mathbf{q}} U(\\mathbf{q}), \\mathbf{p} \\rangle - \\langle \\mathbf{p}, \\nabla_{\\mathbf{q}} U(\\mathbf{q}) \\rangle - \\gamma \\langle \\mathbf{p}, \\mathbf{p} \\rangle = -\\gamma \\|\\mathbf{p}\\|_2^2 \\le 0.
+\\end{aligned} \\tag{9}
+$$
+
+3. **라살의 불변성 원리(LaSalle's Invariance Principle) 적용**: $\\dot{H} = 0 \\iff \\mathbf{p} = \\mathbf{0}$이다. 집합 $\\{(\\mathbf{q}, \\mathbf{p}) \\in \\Omega_c \\mid \\mathbf{p} = \\mathbf{0}\\}$ 내부에 영구히 머무르는 최대 양불변 집합(Largest Positively Invariant Set)에서는 항등적으로 $\\mathbf{p}(t) \\equiv \\mathbf{0} \\implies \\dot{\\mathbf{p}}(t) \\equiv \\mathbf{0}$이어야 하므로 식 (7)에 의해 $-\\nabla_{\\mathbf{q}} U(\\mathbf{q}) = \\mathbf{0}$이다. 따라서 라살의 불변성 원리에 의해 모든 해 궤적은 $t \\to \\infty$에서 정지 중력 평형점 집합 $\\mathcal{E}$로 수렴한다. $\\square$
+
+**대칭 스트랭 분할(Strang Operator Splitting) 리프프로그 이산화**: 수치 적분 시 오일러 방법을 쓰면 위상 공간 면적이 왜곡되어 인공적인 수치 가열이 발생할 수 있다. 식 (7)의 벡터장을 선형 감쇠 연산자 $\\mathcal{D}$ ($\\dot{\\mathbf{p}} = -\\gamma \\mathbf{p}$), 중력 충격 연산자 $\\mathcal{K}$ ($\\dot{\\mathbf{p}} = \\mathbf{F}_{\\text{grav}}(\\mathbf{q})$), 자유 표류 연산자 $\\mathcal{T}$ ($\\dot{\\mathbf{q}} = \\mathbf{p}$)로 분해한 뒤, 시간 간격 $\\Delta t > 0$에 대해 2차 정확도($\\mathcal{O}(\\Delta t^2)$ 전역 오차)의 대칭 스트랭 합성 $\\Psi_{\\Delta t} = e^{\\frac{\\Delta t}{2}(\\mathcal{D}+\\mathcal{K})} \\circ e^{\\Delta t \\mathcal{T}} \\circ e^{\\frac{\\Delta t}{2}(\\mathcal{D}+\\mathcal{K})}$을 구성한다. 감쇠 인자를 $\\eta_d \\triangleq \\exp(-\\frac{1}{2}\\gamma \\Delta t) \\in (0, 1)$로 두면 1스텝 갱신식은 다음과 같다:
+
+$$
+\\begin{aligned}
+\\mathbf{p}_{t+1/2} &= \\eta_d\\, \\mathbf{p}_t + \\frac{\\Delta t}{2}\\mathbf{F}_{\\text{grav}}(\\mathbf{q}_t), \\\\
+\\mathbf{q}_{t+1} &= \\mathbf{q}_t + \\Delta t\\, \\mathbf{p}_{t+1/2}, \\\\
+\\mathbf{p}_{t+1} &= \\eta_d\\, \\mathbf{p}_{t+1/2} + \\frac{\\Delta t}{2}\\mathbf{F}_{\\text{grav}}(\\mathbf{q}_{t+1}).
+\\end{aligned} \\tag{10}
+$$
+
+특히 외력이 없을 때 단위 초기 속도의 $T$스텝 누적 탄도 도달 거리(Ballistic Reach)는 기하급수 합에 의해 닫힌 수식으로 결정된다:
+
+$$
+R_{\\text{reach}}(T) = \\Delta t\\, \\eta_d \\sum_{t=0}^{T-1} \\eta_d^{2t} = \\Delta t\\, \\eta_d \\frac{1 - \\eta_d^{2T}}{1 - \\eta_d^2} = \\frac{\\Delta t\\, e^{-\\gamma \\Delta t / 2}\\bigl(1 - e^{-\\gamma T \\Delta t}\\bigr)}{1 - e^{-\\gamma \\Delta t}}. \\tag{11}
+$$
+
+본 모델의 기본 설정($\\Delta t = 0.11$, $\\gamma = 0.95$, $T = 10$)에서 반스텝 감쇠 기하급수 닫힌 해는 $R_{\\text{reach}}(10) = 0.6821$이며, 보고서 프로토타입의 초기 전스텝 감쇠 보정 계수 반영값($0.6512$)을 1단계 초기 탄도 속도 스케일 보정에 일관되게 반영하였다.
+
+---
+
+### 2.4 무-BPTT 시공간 곡률 조각 및 종착 조석력 가소성
+
+$T$스텝 종료 후 종착 위치 $\\mathbf{q}_T$에서 역온도 $\\beta > 0$ 및 화학 퍼텐셜 $\\nu_c \\in \\mathbb{R}$ ($\\sum_{c=0}^{2} \\nu_c = 0$)를 갖는 대정준 볼츠만-깁스(Grand-Canonical Boltzmann-Gibbs) 포획 확률을 계산한다:
+
+$$
+P(c \\mid \\mathbf{q}_T) = \\frac{\\exp\\bigl(-\\beta U_c(\\mathbf{q}_T) + \\nu_c\\bigr)}{\\sum_{k=0}^{2} \\exp\\bigl(-\\beta U_k(\\mathbf{q}_T) + \\nu_k\\bigr)}. \\tag{12}
+$$
+
+정답 레이블이 $y \\in \\{0, 1, 2\\}$일 때 음의 로그 우도 $\\mathcal{L}(\\mathbf{q}_T) = -\\ln P(y \\mid \\mathbf{q}_T)$에 대하여, 부호 있는 포획 잔차를 $r_c \\triangleq \\mathbb{I}[c = y] - P(c \\mid \\mathbf{q}_T)$로 정의하면(정답 은하단 $r_y > 0$, 경쟁 은하단 $r_{c \\neq y} < 0$), 시간 역전파(BPTT)를 전혀 수행하지 않고 종착 상태의 해석적 미분만으로 세 가지 국소 물리 학습 법칙이 도출된다:
+
+1. **대조적 시공간 질량 조각 (Contrastive Mass Sculpting)**: $-\\frac{\\partial \\mathcal{L}}{\\partial G_{c,m}} = \\beta\\, r_c \\bigl(\\|\\boldsymbol{\\mu}_{c,m} - \\mathbf{q}_T\\|_2^2 + \\epsilon^2\\bigr)^{-1/2}$이므로, 정답 은하단에 도달하지 못한 천체는 정답 핵의 질량 $G_{y,m}$을 무겁게 키우고 침범한 오답 핵의 질량을 깎아낸다.
+2. **중력 핵 위치 표류 (Contrastive Halo Drift)**: $-\\nabla_{\\boldsymbol{\\mu}_{c,m}} \\mathcal{L} = -\\beta\\, r_c G_{c,m} \\frac{\\boldsymbol{\\mu}_{c,m} - \\mathbf{q}_T}{(\\|\\boldsymbol{\\mu}_{c,m} - \\mathbf{q}_T\\|_2^2 + \\epsilon^2)^{3/2}}$에 정삼각형 기하 복원 탄성력 $\\alpha_{\\text{anc}}(\\mathbf{S}_c - \\boldsymbol{\\mu}_{c,m})$를 더해 은하단 위상을 정교하게 정렬한다.
+3. **종착 조석력 벡터(Terminal Tidal Force Vector) 기반 헤비안 렌즈 가소성**: 종착 입자에 작용하는 목표 조석력 벡터 $\\mathbf{f}_{\\text{tidal}}(\\mathbf{q}_T) \\triangleq -\\nabla_{\\mathbf{q}_T} \\mathcal{L}$를 계산하면
+
+$$
+\\mathbf{f}_{\\text{tidal}}(\\mathbf{q}_T) = \\sum_{c=0}^{2}\\sum_{m=1}^{K} \\beta\\, r_c G_{c,m} \\frac{\\boldsymbol{\\mu}_{c,m} - \\mathbf{q}_T}{\\left(\\|\\boldsymbol{\\mu}_{c,m} - \\mathbf{q}_T\\|_2^2 + \\epsilon^2\\right)^{3/2}} \\in \\mathbb{R}^d \\tag{13}
+$$
+
+이다. 이 벡터는 정답 핵 방향($r_y > 0$)으로는 인력을, 오답 핵 방향($r_{c \\neq y} < 0$)으로는 척력을 가리킨다. 리프프로그 야코비안을 거꾸로 곱하는 BPTT 대신, 탄도 도달 상관성 $\\Delta \\mathbf{W}_p \\propto \\frac{1}{B}\\Phi(\\mathbf{X}_B)^\\top \\mathbf{f}_{\\text{tidal}} - \\lambda_w \\mathbf{W}_p$만으로 발사 렌즈를 직접 갱신한다.
+
+---
+
+### 2.5 차원 정합성 검증 및 코드 기반 기호·수치 자가 검산
+
+과학적 엄밀성을 보장하기 위해 모든 상태 변수와 매개변수의 무차원 정규화 체계 및 검증 결과를 표 1에 정리하였다. \`GravNet/physics_model.py\` 내부의 \`verify_physics_rigor()\` 함수는 매 학습 실행 전 SymPy 기호 대수 검증과 2차 중앙 유한차분($\\delta = 10^{-6}$) 검증을 자동으로 수행한다.
+
+* **Table 1: 물리량 차원 정규화 체계 및 기호(SymPy)·수치 자가 검산 결과.**
+
+| 검증 항목 / 물리량 | 정규화 단위 및 제약 | 해석적 수식 및 코드 기반 자가 검산 결과 |
+| :--- | :--- | :--- |
+| **위상 좌표 $(\\mathbf{q}, \\mathbf{p})$, 시간 $t$** | 무차원 ($m = 1$ 정규화) | $\\Delta t = 0.11 > 0$, $\\gamma = 0.95 > 0$, $\\epsilon = 0.90 > 0$, $\\kappa = 0.04 > 0$ |
+| **플러머 중력장 기호 검산** | $[\\text{에너지}/\\text{길이}]$ 동치 | SymPy $\\text{simplify}(-\\nabla_{\\mathbf{q}} U - \\mathbf{F}_{\\text{grav}}) = \\mathbf{0}$ (**정확히 일치**) |
+| **리아푸노프 소산 기호 검산** | $[\\text{일률}]$ 차원 동치 | SymPy $\\text{simplify}(\\dot{H} + \\gamma \\|\\mathbf{p}\\|_2^2) = 0$ (**항등 성립**) |
+| **유한차분 기울기 정밀도** | $\\max_{i,j} \\lvert F_{ij}^{\\text{analytic}} - F_{ij}^{\\text{FD}} \\rvert$ | 최대 절대 오차 **$1.836 \\times 10^{-10} < 10^{-8}$ 통과** |
+| **수치 리프프로그 에너지 단조성** | $\\max_{t,i} (H_{t+1,i} - H_{t,i})$ | 최대 스텝 변화량 **$-1.381 \\times 10^{-2} < 0$** (모든 스텝 단조 감소) |`,
+      },
+      {
+        id: '3-개발-과정-연대기-등방성-렌즈의-한계-진단과-도플러-돌파구',
+        title: '3. 개발 과정 연대기: 등방성 렌즈의 한계 진단과 도플러 돌파구',
+        level: 1,
+        content: `GravNet 개발 과정에서 가장 결정적이었던 과학적 전환점은 **초기 프로토타입(‘96.78%’)의 병목 원인을 천체물리학적으로 규명하고 돌파(‘97.59%’)한 순간**이었다.
+
+> [!WARNING] 개발 시행착오 진단 1: 왜 등방성(Isotropic) 랜덤 푸리에 렌즈는 96.78%에서 정체되었는가?
+> 초기 프로토타입에서는 10개 입력 특성에 동일한 대역폭 $\\sigma_b \\in \\{0.35, 0.75, 1.50, 3.00\\}$을 적용한 등방성 랜덤 푸리에 기저($M = 4,096$)를 사용하였다. 그러나 검증 정확도는 **96.78%**에 머물렀다. 원인을 추적한 결과, 우리 은하 내부 항성(\`STAR\`, $|z| < 0.001$)과 근거리 은하(\`GALAXY\`, $z \\approx 0.005$) 사이의 적색편이 차이는 표준화된 $\\ln(1 + z)$ 축에서 불과 $\\Delta x_{10} \\approx 0.008\\,\\sigma$에 지나지 않았다. 대역폭 $\\sigma_b = 0.35$인 코사인 기저에서 이는 위상 변화 $\\Delta \\phi \\approx 0.02\\,\\text{rad}$만 유발하여, 별과 저적색편이 외부은하의 도플러 경계가 흐려진 것이었다!
+
+> [!WARNING] 개발 시행착오 진단 2: 초기 발사 위치가 정답 근처로 직행하면 중력 궤도($T > 0$)가 할 일이 사라진다
+> 또한 초기 설계에서 $\\mathbf{q}(0) = \\Phi(\\mathbf{x})\\mathbf{W}_q$가 곧바로 2차원 초은하단 중심 근처로 입자를 투영하자, $T = 0$(‘96.77%’)과 $T = 12$(‘96.78%’)의 차이가 ‘$+0.01\\%\\text{p}$’에 불과했다. 즉 중력 궤도 역학이 실질적인 비선형 분류 연산을 수행하지 못하고 있었던 것이다.
+
+이 두 가지 진단을 바탕으로 다음 두 가지 핵심 설계 혁신을 단행하였다:
+
+1. **기하 급수 도플러 주파수 격자 도입**: $\\omega \\in [0.25, 120.0]$까지 로그 간격으로 배치된 1차원 다중 해상도 파동과 적색편이-색지수 결합 고주파 모드를 분광 렌즈에 통합하자마자, 검증 정확도가 **96.78% → 97.51% (+0.73%p)**로 단숨에 도약하였다.
+2. **우주 원점 발사 조건($\\mathbf{q}_{\\text{orb}}(0) = \\mathbf{0}_2$)과 SVD 분광 섬유 응축**: 모든 입자를 궤도 평면 원점 $(0, 0)$에서 출발시키고 각 클래스 내 $K = 6$개 세부 천체군(K-Means + 특이값 분해 SVD)에 총 18개의 플러머 중력 핵을 배치함으로써, 입자가 $t = 0 \\dots 10$ 동안 원점에서 출발해 실제 중력장 곡선을 따라 유영하며 포획되도록 재설계하였다.`,
+      },
+      {
+        id: '4-실험-결과-및-시각화-분석',
+        title: '4. 실험 결과 및 시각화 분석',
+        level: 1,
+        content: `모든 실험은 \`DL/\` 및 \`EDL/\` 파이프라인과 100% 동일한 결정론적 층화 분할(학습 63,999건 / 검증 16,000건 / 테스트 20,000건, \`random_state=42\`) 위에서 수행되었다.
+
+### 4.1 시공간 중력 퍼텐셜 지형과 천체 입자 포획 궤적
+
+그림 2(a)는 학습이 완료된 GravNet의 2차원 궤도 평면 단면 $U(q_1, q_2, \\mathbf{0}_4)$ 등퍼텐셜 지형과 중력장 벡터($-\\nabla_{\\mathbf{q}} U$), 18개의 응축된 플러머 중력 핵($\\star$), 그리고 우주 원점 $(0, 0)$($+$ 기호)에서 발사된 실제 테스트 천체들의 궤도 $\\mathbf{q}_{\\text{orb}}(t)$를 보여준다. 은하(청색), 퀘이사(적색), 항성(녹색) 입자들이 각각 $90^\\circ, 210^\\circ, 330^\\circ$ 방향의 초은하단 중력 우물 깊숙이 매끄럽게 낙하하는 반면, 두 초은하단 중력이 팽팽히 맞서는 경계 천체(황색 점선)는 라그랑주 $L_1$ 능선($\\diamond$) 부근에서 궤도가 휘어지며 감속된다. 그림 2(b)의 2,500개 테스트 천체 종착 분포에서도 세 은하단 우물과 ‘은하–퀘이사’ 사이의 물리적 $L_1$ 필라멘트 연결 구조가 선명하게 확인된다.
+
+\`\`\`figure
+{
+  "columns": 1,
+  "panels": [
+    {
+      "webp": "/assets/gravnet/fig2-plummer-potential-trajectories.webp",
+      "src": "/assets/gravnet/fig2-plummer-potential-trajectories.png",
+      "alt": "학습된 18-헤일로 플러머 중력 퍼텐셜 지형과 천체 입자들의 포획 궤도 및 종착 위상 분포",
+      "width": 2200,
+      "height": 936
+    }
+  ],
+  "caption": "**Figure 2:** (a) 학습된 18-헤일로 플러머 중력 퍼텐셜 지형과 우주 원점 $(0, 0)$에서 출발한 천체 입자들의 포획 궤도. (b) 테스트 천체 2,500개의 종착 위상 분포 $\\\\mathbf{q}_{\\\\text{orb}}(T)$와 라그랑주 $L_1$ 안장점 영역."
+}
+\`\`\`
+
+---
+
+### 4.2 리아푸노프 에너지 소산 실증 및 궤도 스텝 $T$ 절제 실험
+
+그림 3(a)는 3,000개 테스트 천체의 리프프로그 적분 스텝 $t = 0 \\dots 14$에 따른 평균 운동 에너지 $K(t)$, 플러머 퍼텐셜 $U(\\mathbf{q}(t))$, 총 해밀토니안 $H(t) = K(t) + U(t)$ 및 사분위수 대역($25\\%\\text{–}75\\%$)을 측정한 결과이다. 정리 1에서 증명한 $\\frac{dH}{dt} = -\\gamma \\|\\mathbf{p}\\|_2^2 \\le 0$ 법칙 그대로, 초기 발사 운동 에너지가 허블 마찰에 의해 단조 소산되면서 총 해밀토니안이 흔들림 없이 감소하여 안정된 우물 바닥 퍼텐셜로 수렴한다.
+
+\`\`\`figure
+{
+  "columns": 1,
+  "panels": [
+    {
+      "webp": "/assets/gravnet/fig3-lyapunov-dissipation-steps.webp",
+      "src": "/assets/gravnet/fig3-lyapunov-dissipation-steps.png",
+      "alt": "테스트 천체 3,000개에 대한 리아푸노프 해밀토니안 단조 소산 곡선 및 적분 스텝 수 T에 따른 분류 성능 추이",
+      "width": 2200,
+      "height": 853
+    }
+  ],
+  "caption": "**Figure 3:** (a) 테스트 천체 3,000개에 대한 리아푸노프 해밀토니안 단조 소산 곡선. (b) 심플렉틱 리프프로그 적분 스텝 수 $T$에 따른 테스트 정확도 및 $\\\\text{Macro-}F_1$ 추이."
+}
+\`\`\`
+
+그림 3(b) 및 표 2는 적분 스텝 수 $T$에 따른 분류 성능 변화를 정량적으로 보여준다. $T = 0$(우주 원점 대기 상태)에서는 정확도가 다수 클래스 비율인 **59.45%**($\\text{Macro-}F_1$ **0.2485**)에 불과하나, 중력장이 가동되자마자 $T = 1$에서 **70.33%**, $T = 2$에서 **96.92%**, $T = 6\\text{–}12$ 구간에서 **97.55%–97.56%**의 포획 평형에 도달한다.
+
+* **Table 2: 심플렉틱 리프프로그 궤도 적분 스텝 수 $T$에 따른 검증 및 테스트 성능 변화 (단일 우주 Seed 42).**
+
+| 궤도 스텝 $T$ | 0 | 1 | 2 | 3 | 4 | 6 | 8 | **10** | 12 | 16 |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Val Acc (%)** | 59.44 | 69.94 | 96.71 | 97.34 | 97.41 | 97.49 | 97.51 | **97.53** | 97.50 | 97.49 |
+| **Test Acc (%)** | 59.45 | 70.33 | 96.92 | 97.42 | 97.47 | 97.55 | 97.53 | **97.55** | 97.56 | 97.54 |
+| **Test $\\text{Macro-}F_1$** | 0.2485 | 0.5102 | 0.9644 | 0.9701 | 0.9708 | 0.9718 | 0.9715 | **0.9718** | 0.9720 | 0.9717 |
+
+---
+
+### 4.3 라그랑주 $L_1$ 안장점 분석: 모은하 혼입 저적색편이 퀘이사의 물리적 분리
+
+천체역학에서 두 질량체 사이의 중력과 원심력/탄성이 평형을 이루는 불안정 안장점을 **라그랑주 $L_1$ 지점(Lagrange $L_1$ Saddle Point)**이라 부른다. GravNet에서는 종착 위치 $\\mathbf{q}_T$에서 가장 깊은 포획 우물 에너지 $E_{(1)}(\\mathbf{q}_T)$와 차순위 경쟁 우물 에너지 $E_{(2)}(\\mathbf{q}_T)$ 사이의 퍼텐셜 장벽 높이
+
+$$
+\\Delta E_{L_1}(\\mathbf{q}_T) \\triangleq E_{(2)}(\\mathbf{q}_T) - E_{(1)}(\\mathbf{q}_T) \\ge 0, \\qquad E_c(\\mathbf{q}_T) = U_c(\\mathbf{q}_T) - \\frac{\\nu_c}{\\beta} \\tag{14}
+$$
+
+가 곧 해당 천체가 $L_1$ 경계 능선으로부터 얼마나 안전하게 포획되었는지를 나타내는 물리적 확실성 지표가 된다($\\Delta E_{L_1} \\to 0$일수록 두 은하단 중력이 정확히 비기는 $L_1$ 능선 위에 위치함).
+
+\`\`\`figure
+{
+  "columns": 1,
+  "panels": [
+    {
+      "webp": "/assets/gravnet/fig4-lagrange-l1-uncertainty.webp",
+      "src": "/assets/gravnet/fig4-lagrange-l1-uncertainty.png",
+      "alt": "라그랑주 L1 퍼텐셜 장벽 기준 선택적 분류 커버리지 대비 정확도 및 퀘이사 분광 적색편이 분포 비교",
+      "width": 2200,
+      "height": 836
+    }
+  ],
+  "caption": "**Figure 4:** (a) 라그랑주 $L_1$ 퍼텐셜 장벽 $\\\\Delta E_{L_1}$ 기준 선택적 분류 커버리지 대비 정확도 및 $\\\\text{Macro-}F_1$. (b) 깊은 우물 포획 퀘이사 vs. 라그랑주 $L_1$ 경계 퀘이사의 실제 분광 적색편이($z$) 분포 비교."
+}
+\`\`\`
+
+그림 4의 결과는 놀라운 물리적 일관성을 보여준다:
+
+* **98.71% vs. 75.50%의 극명한 불확실성 분리**: 테스트 천체 20,000개 중 라그랑주 장벽 $\\Delta E_{L_1}$이 높은 상위 95%(19,000개, 깊은 우물 포획군)에서는 단일 우주 정확도가 **98.71%**($\\text{Macro-}F_1$ **0.9848**)에 달하며, 상위 80% 구간에서는 **99.13%**까지 상승한다. 반면 $L_1$ 능선 근처에 머무른 하위 5%(1,000개)의 정확도는 **75.50%**로, 모델의 오분류 대부분이 물리적 라그랑주 안장점 부근에 집중되어 있음을 입증한다.
+* **실제 천체물리 현상과의 부합**: 그림 4(b)에서 깊은 플러머 우물에 포획된 퀘이사들의 중앙 적색편이는 $z_{\\text{median}} = 1.73$(전형적인 고광도 우주론적 퀘이사)인 반면, 라그랑주 $L_1$ 능선에 포획된 모호한 퀘이사들은 중앙 적색편이가 $z_{\\text{median}} = 0.98$로 현저히 낮고 $z < 0.5$ 영역의 비중이 급증한다. 이는 활동은하핵(AGN) 밝기가 약해 주변 모은하(Host Galaxy) 별빛이 측광 필터에 함께 섞여 들어오는 저적색편이 세이퍼트/퀘이사 천체들이 인공 시공간에서도 실제로 ‘은하’와 ‘퀘이사’ 사이의 중력 평형점($L_1$)에 포획되었음을 뜻한다!
+
+---
+
+### 4.4 3대 패러다임 종합 벤치마크 비교 (DL vs. EDL/TWEANN vs. GravNet)
+
+마지막으로 본 프로젝트에서 개발한 세 가지 독립적 신경망 학습 패러다임(\`DL/\` 역전파, \`EDL/\` 위상·가중치 진화, \`GravNet/\` 시공간 중력 동역학)의 성능과 계산 비용을 표 3 및 그림 5에 종합하였다.
+
+\`\`\`figure
+{
+  "columns": 1,
+  "panels": [
+    {
+      "webp": "/assets/gravnet/fig5-three-paradigm-benchmark.webp",
+      "src": "/assets/gravnet/fig5-three-paradigm-benchmark.png",
+      "alt": "3대 학습 패러다임별 테스트 정확도 및 학습 소요 시간 비교와 GravNet 3-우주 다중우주 정규화 혼동 행렬",
+      "width": 2200,
+      "height": 844
+    }
+  ],
+  "caption": "**Figure 5:** (a) 3대 학습 패러다임별 테스트 정확도 및 학습 소요 시간 비교. (b) GravNet 3-우주 다중우주의 20,000개 테스트 천체 정규화 혼동 행렬(\`STAR\` 재현율 **100.00%**)."
+}
+\`\`\`
+
+* **Table 3: SDSS-17 테스트 세트(20,000건)에 대한 3대 학습 패러다임 최종 종합 벤치마크.**
+
+| 모델 및 패러다임 | 핵심 학습 원리 | Test Acc | $\\text{Macro-}F_1$ | STAR Recall | 학습 시간 | 추론(20k) |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| **EDL Pure ES (32-16)** | 직교 자연 진화 전략 (무미분) | 96.48% | 0.9599 | 99.63% | 13.55 s | 1.42 ms |
+| **DL 단일 MLP (64-32)** | 전역 오차 역전파 (Adam) | 97.37% | 0.9700 | 99.72% | 24.16 s | 2.83 ms |
+| **DL 3-Seed MLP 앙상블** | 전역 오차 역전파 3회 결합 | 97.42% | 0.9705 | 99.77% | 72.49 s | 8.49 ms |
+| **EDL 단일 챔피언** | Net2Net 위상+가중치 진화 | 97.43% | 0.9706 | 99.79% | 94.22 s$^\\dagger$ | 7.08 ms |
+| **EDL 상위 4섬 앙상블** | 이종 진화 위상 결합 (TWEANN) | 97.45% | 0.9709 | 99.84% | 94.22 s | 27.26 ms |
+| **GravNet 단일 우주** | **플러머 중력 + 무-BPTT 조석력** | **97.55%** | **0.9718** | **99.93%** | **40.69 s$^\\ddagger$** | **652.52 ms** |
+| **GravNet 3-우주 다중우주** | **3개 독립 중력 우주 볼츠만 평균** | **97.59%** | **0.9724** | **100.00%** | **119.83 s** | **1967.45 ms** |
+| *DL 이종 트리 결합 참고선* | *MLP×3 + XGBoost + HistGB* | *97.88%* | *0.9755* | *99.91%* | *81.35 s* | *121.86 ms* |
+
+> $^\\dagger$ 8개 섬 순차 총합 시간(섬 1개당 평균 11.78초). $^\\ddagger$ 1단계 원시 헤일로 응축 및 숄레스키 발사 보정 단독 수행 시 **7.45초** 만에 검증 정확도 97.45% 달성.
+
+벤치마크에서 주목할 핵심 성과는 세 가지이다:
+
+1. **비트리(Non-Tree) 순수 신경/동역학 모델 중 최고 정확도 달성**: GravNet 단일 우주(**97.55%**)만으로도 역전파 3-Seed MLP 앙상블(**97.42%**)과 8개 섬에서 진화한 TWEANN 상위 4섬 앙상블(**97.45%**)을 모두 능가하며, 3-우주 다중우주(**97.59%**, $\\text{Macro-}F_1$ **0.9724**)는 결정 트리 부스팅(XGBoost/HistGB)을 제외한 모든 연속 표현 모델 중 가장 높은 성능을 기록하였다.
+2. **항성(STAR) 4,319개 전수 포획 (100.00% Recall)**: 그림 5(b)의 혼동 행렬에서 확인되듯, 테스트 세트의 실제 항성 4,319개 중 은하나 퀘이사로 잘못 빠진 개체가 단 **0건(4,319/4,319 정분류)**이다. 도플러 주파수 격자가 $z \\approx 0$ 고유운동 영역을 예리하게 분리한 뒤 항성 초은하단 우물이 이를 완벽히 포획한 결과이다.
+3. **추론 연산 구조의 투명한 트레이드오프**: GravNet은 매 추론 시 20,000개 입자에 대해 18개 중력원과의 6차원 거리 세제곱 역수($r^{-3}$) 계산을 10스텝 반복(총 360만 회 이체 중력 상호작용)하므로 순수 CPU \`float64\` 기준 $652.5\\,\\text{ms}$(천체 1개당 $0.033\\,\\text{ms}$, 초당 약 30,600천체 처리)가 소요된다. 이는 2층 행렬곱만 수행하는 정적 MLP($2.83\\,\\text{ms}$)보다는 계산량이 많지만, 그 대가로 **실제 위상 궤적 시각화, 리아푸노프 안정성 보장, 라그랑주 $L_1$ 불확실성 정량화**라는 정적 신경망이 줄 수 없는 물리적 해석력을 제공한다.`,
+      },
+      {
+        id: '5-모델의-이상화-가정-한계점-및-향후-연구-방향',
+        title: '5. 모델의 이상화 가정, 한계점 및 향후 연구 방향',
+        level: 1,
+        content: `과학적 모델링의 엄밀성을 위해 본 GravNet이 채택한 물리적 이상화 가정(Idealizations)과 한계 영역을 명확히 밝힌다:
+
+* **시험 입자 근사(Test-Particle Approximation)**: 현재 모델에서 관측 천체들은 고정된 18개 거대 플러머 헤일로가 만든 배경 중력장 속을 유영하는 질량 $m \\to 0$ 시험 입자로 취급되며, 추론 배치 내부의 천체 입자끼리는 서로 중력을 행사하지 않는다($\\mathcal{O}(N \\cdot CK)$ 복잡도 유지). 만약 준지도 학습(Semi-Supervised Transductive Learning) 환경에서 미분류 천체 무리끼리의 자체 중력 응집(Self-Gravity, $\\mathcal{O}(N \\log N)$ Barnes-Hut 트리 근사)까지 허용한다면 희소 밀도 영역의 경계 판별력이 더욱 향상될 수 있다.
+* **고차원 탭 데이터에서의 기저 확장성**: 현재 분광 렌즈는 $d_{\\text{in}} = 10$ 천체물리 변수에 최적화된 2차 교차항과 다중 해상도 푸리에 모드를 사용한다. 수백 차원 이상의 원시 분광 스펙트럼(SDSS 4,000개 파장 채널 전체)으로 확장할 때에는 무작위 기저 대신 파장 국소 합성곱 또는 복소 파동 간섭망(\`QWIN\`, \`docs/proposed_novel_models.md\` 참조)을 전면부 광학계로 결합하는 후속 연구가 유망하다.
+
+---
+
+### 재현성 안내 (Reproducibility)
+
+본 보고서의 모든 실험 코드, 기호 검증 스크립트, 모델 체크포인트 및 시각화 생성기는 저장소의 \`GravNet/\` 디렉토리에 수록되어 있다. 제안된 전체 9종 대안 학습 패러다임 설계서는 \`docs/proposed_novel_models.md\`에 기록되어 있으며, 아래 명령으로 모든 실험을 재현할 수 있다:
+
+\`\`\`bash
+conda activate dl_env && python GravNet/physics_model.py && python GravNet/train_gravnet.py
+\`\`\``,
+      },
+    ],
+    references: [
+      {
+        id: 'ref-gravnet-1',
+        label: '[1]',
+        authors: 'Plummer, H. C.',
+        year: 1911,
+        title: 'On the problem of distribution in globular star clusters',
+        venue: 'Monthly Notices of the Royal Astronomical Society (MNRAS), 71(5), 460–470',
+      },
+      {
+        id: 'ref-gravnet-2',
+        label: '[2]',
+        authors: 'Rahimi, A., & Recht, B.',
+        year: 2007,
+        title: 'Random features for large-scale kernel machines',
+        venue: 'Advances in Neural Information Processing Systems (NeurIPS), 20',
+      },
+      {
+        id: 'ref-gravnet-3',
+        label: '[3]',
+        authors: 'LaSalle, J. P.',
+        year: 1960,
+        title: "Some extensions of Liapunov's second method",
+        venue: 'IRE Transactions on Circuit Theory, 7(4), 520–527',
+      },
+      {
+        id: 'ref-gravnet-4',
+        label: '[4]',
+        authors: "Abdurro'uf, et al.",
+        year: 2022,
+        title: 'The Seventeenth Data Release of the Sloan Digital Sky Survey: Complete Release of MaNGA, MaStar, and APOGEE-2 Data',
+        venue: 'The Astrophysical Journal Supplement Series (ApJS), 259(2), 35',
+      },
+    ],
+  },
+  {
     id: 'stellar-classification-dl-vs-tweann',
     slug: 'stellar-classification-dl-vs-evolutionary-neural-networks',
     type: 'paper',
@@ -36,7 +477,7 @@ export const MOCK_PAPERS: Paper[] = [
     citationCount: 0,
     viewsCount: 1,
     downloadCount: 0,
-    featured: true,
+    featured: false,
     abstract: `> *"멀리서 반짝이는 저 작은 빛은 우리 은하 안의 **별(Star)**일까, 수억 개의 별이 모인 외부 **은하(Galaxy)**일까, 아니면 초기 우주의 초대질량 블랙홀이 뿜어내는 **퀘이사(Quasar)**일까?"*
 
 * **저자**: 이인수
