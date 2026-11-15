@@ -1,0 +1,440 @@
+\documentclass[journal]{IEEEtran}
+
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{kotex}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit,backgrounds}
+\usepackage{xurl}
+\usepackage[hidelinks,unicode]{hyperref}
+\usepackage{cite}
+
+% Portable bundled TeX Live font setup (Times-equivalent + Hangul Un-fonts + Unicode Mono)
+\setmainfont{TeXGyreTermesX}
+\setsansfont{texgyreheros-regular.otf}[
+  BoldFont = texgyreheros-bold.otf,
+  ItalicFont = texgyreheros-italic.otf,
+  BoldItalicFont = texgyreheros-bolditalic.otf,
+  Scale = MatchLowercase
+]
+\setmonofont{DejaVuSansMono.ttf}[
+  BoldFont = DejaVuSansMono-Bold.ttf,
+  ItalicFont = DejaVuSansMono-Oblique.ttf,
+  BoldItalicFont = DejaVuSansMono-BoldOblique.ttf,
+  Scale = 0.80
+]
+\setmainhangulfont{UnBatang.ttf}[
+  BoldFont = UnBatangBold.ttf,
+  BoldItalicFont = UnBatangBold.ttf,
+  BoldItalicFeatures = {FakeSlant=0.15},
+  AutoFakeSlant = 0.15
+]
+\setsanshangulfont{UnDotum.ttf}[
+  BoldFont = UnDotumBold.ttf,
+  BoldItalicFont = UnDotumBold.ttf,
+  BoldItalicFeatures = {FakeSlant=0.15},
+  AutoFakeSlant = 0.15
+]
+
+% Preserve IEEEtran visual hierarchy while preventing Hangul spacing collapse under \scshape
+\makeatletter
+\long\def\@makecaption#1#2{%
+  \ifx\@captype\@IEEEtablestring%
+    \footnotesize\bgroup\par\centering\@IEEEtabletopskipstrut{\normalfont\footnotesize #1}\\{\normalfont\footnotesize\bfseries #2}\par\addvspace{0.5\baselineskip}\egroup%
+    \@IEEEtablecaptionsepspace
+  \else%
+    \@IEEEfigurecaptionsepspace
+    \setbox\@tempboxa\hbox{\normalfont\footnotesize {#1.}\nobreakspace\nobreakspace #2}%
+    \ifdim \wd\@tempboxa >\hsize%
+      \setbox\@tempboxa\hbox{\normalfont\footnotesize {#1.}\nobreakspace\nobreakspace}%
+      \parbox[t]{\hsize}{\normalfont\footnotesize\noindent\unhbox\@tempboxa#2}%
+    \else%
+      \ifCLASSOPTIONconference \hbox to\hsize{\normalfont\footnotesize\hfil\box\@tempboxa\hfil}%
+      \else \hbox to\hsize{\normalfont\footnotesize\box\@tempboxa\hfil}%
+      \fi%
+    \fi%
+  \fi%
+}
+\def\section{\@startsection{section}{1}{\z@}{1.5ex plus 1.5ex minus 0.5ex}%
+  {0.7ex plus 1ex minus 0ex}{\normalfont\normalsize\centering\bfseries}}%
+\makeatother
+
+\emergencystretch 1.8em
+\tracinglostchars=2
+\setlength{\textfloatsep}{10pt plus 2pt minus 2pt}
+\setlength{\floatsep}{8pt plus 2pt minus 2pt}
+\setlength{\intextsep}{8pt plus 2pt minus 2pt}
+
+\newcommand{\code}[1]{\texttt{#1}}
+\newtheorem{definition}{Definition}
+
+\begin{document}
+
+\title{Proof-Notebook: Lean 4 및 Rocq 다중 증명기 노트북 커널과 협업 웹 스튜디오 아키텍처}
+
+\author{이인수%
+\thanks{본 기술 보고서는 IRADE Proof-Notebook 프로젝트(\code{notebook-kernel}, 패키지명 \code{lean4-jupyter-kernel} v0.1.0, Apache-2.0)의 아키텍처, 프로토콜 구현 및 검증 결과를 기록한다.}}
+
+\markboth{IRADE Proof-Notebook Technical Report, 2026}{이인수: Lean 4 및 Rocq 다중 증명기 노트북 아키텍처}
+
+\maketitle
+
+\begin{abstract}
+대화형 정리 증명기(Interactive Theorem Prover, ITP)는 형식 검증과 수학적 추론에 필수적이나, 선형 셀 실행을 가정하는 전통적 Jupyter 노트북 환경에 통합할 경우 상태 비일관성, 심볼 재선언 충돌, 그리고 커서 위치 기반 목표(Goal) 상태 가시성 부재라는 구조적 문제가 발생한다. 본 보고서는 Lean 4(\code{lean4\_kernel}), Rocq/Coq(\code{rocq\_kernel}), 및 Python 3(\code{ipykernel})을 단일 워크벤치 아래 결합한 \textit{Proof-Notebook} 시스템(저장소 내 총 17,183라인 규모)의 설계와 구현을 기술한다. 제안 시스템은 (1) \code{leanprover-community/repl}의 JSON 스냅샷 ID 기반 불변 환경 방향성 비순환 그래프(DAG)와 자동 백트래킹 엔진, (2) \code{coqidetop}의 네이티브 XML 상태 트랜잭션 머신(STM) 기반 어휘 토크나이징 및 셀 단위 원자적 롤백(\code{Edit\_at}) 엔진, (3) \code{InfoTree} 및 STM 스텝을 커서와 동기화하는 하이브리드 서버 사이드/클라이언트 사이드 렌더링(SSR+CSR) InfoView 위젯, 그리고 (4) TLS 1.2+ HTTPS 전용 서버, 제로 의존성 RESP2 Redis 핫/콜드 워크스페이스 생명주기 관리, SSE 실시간 협업 및 Project-Agora 캔버스 브리지를 갖춘 VS Code 스타일 웹 스튜디오로 구성된다. 전체 30개 자동화 테스트 중 오프라인 프로토콜 및 라이브 Rocq 세션을 포함한 21개 항목이 통과하였으며, 샌드박스 환경의 \code{lean} 바이너리 부재(2건 스킵)와 루프백 프록시 제한(7건 실패) 및 웹 프론트엔드 내 Rocq UI 노출 범위를 포함한 현 통합 경계까지 투명하게 보고한다.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Lean 4, Rocq, Coq, Jupyter 커널, 대화형 정리 증명, InfoView, 스냅샷 DAG, 상태 트랜잭션 머신(STM), 실시간 협업 노트북.
+\end{IEEEkeywords}
+
+\section{서론}
+
+\subsection{배경 및 연구 동기}
+계산 과학 워크플로우에서 Jupyter 노트북은 서술형 텍스트(Markdown), 수식(\LaTeX), 실행 코드 및 풍부한 시각 출력을 단일 문서로 결합하여 재현 가능한 연구 매체로 자리 잡았다~\cite{kluyver2016jupyter}. 한편, Lean 4~\cite{moura2021lean4}와 Rocq(구 Coq)~\cite{barras2015asynchronous}와 같은 의존 타입 이론(Dependent Type Theory) 기반 대화형 정리 증명기는 프로그램 검증과 형식 수학에서 빠르게 확산되고 있으나, 이를 노트북 패러다임으로 옮기는 과정은 단순한 스크립트 인터프리터 래핑과 근본적으로 다르다.
+
+기존의 문학적 증명(Literate Proof) 도구인 Alectryon~\cite{pitclaudel2020alectryon}은 증명 스크립트와 중간 목표 상태를 정적 HTML로 엮어 가독성을 높였으나, 연구자가 셀을 임의 순서로 수정·재실행하고 파이썬 수치/기호 실험과 형식 증명을 동일 작업 공간에서 실시간 협업으로 연결하는 대화형 환경으로는 확장되지 않았다. 본 프로젝트(\code{proof-notebook}, \code{pyproject.toml} 기준 \code{lean4-jupyter-kernel} v0.1.0)는 표준 Jupyter 커널 사양과 VS Code 스타일의 독립 협업 웹 스튜디오(\textit{IRADE Proof Studio})를 동시에 제공함으로써 이러한 공백을 해소하도록 설계되었다.
+
+\subsection{핵심 기술적 난제}
+다중 증명기 노트북 시스템을 구축할 때 해결해야 할 핵심 난제는 크게 네 가지이다.
+\begin{enumerate}
+  \item \textbf{비선형 셀 재실행과 전역 이름 충돌:} Jupyter 사용자는 상단 셀의 \code{def}나 \code{theorem}을 수정한 뒤 하단 셀을 다시 실행한다. 단순 누적 프로세스는 동일 식별자에 대해 \code{already been declared} 오류를 유발하므로, 과거 환경 스냅샷으로 되돌려 후속 계보(Lineage)를 재구성해야 한다.
+  \item \textbf{하위 프로세스 중단 및 복구:} 타임아웃, 비정상 종료 또는 사용자 인터럽트 발생 시 장기 실행 중인 Lean/Rocq 프로세스 상태를 잃지 않고 유효한 증명 계보를 자동 복원해야 한다.
+  \item \textbf{행/열 커서 기반 InfoView 제공:} 증명기는 최종 성공/실패 메시지보다 각 전술(Tactic) 경계 전후의 가설 맥락($\Gamma$)과 목표($\vdash G$) 변화가 핵심이다. 커널 실행 결과를 정적 문자열이 아닌 커서 연동 위젯으로 전달해야 한다.
+  \item \textbf{이기종 증명기 프로토콜의 통합:} Lean 4 REPL은 빈 줄(\code{\textbackslash n\textbackslash n})로 구분된 비동기 JSON 스냅샷 ID 모델~\cite{morrison_repl}을 사용하고, Rocq \code{coqidetop}은 XML 직렬화 기반의 STM(\code{Init}, \code{Add}, \code{Edit\_at}, \code{Goal})~\cite{barras2015asynchronous}을 사용한다. 상이한 두 상태 모델을 공통된 노트북 사용자 경험으로 추상화하면서도 각 증명기의 안전성 보장을 훼손하지 않아야 한다.
+\end{enumerate}
+
+\subsection{주요 구현 기여 및 보고서 구성}
+본 보고서가 기술하는 시스템의 주요 엔지니어링 기여는 다음과 같다.
+\begin{itemize}
+  \item \textbf{Lean 4 불변 스냅샷 DAG 커널(\code{lean4\_kernel}):} \code{EnvNode}/\code{ProofNode} 계보 추적, 재선언 자동 백트래킹, \code{InfoTree} 재귀 파싱 기반 하이브리드 InfoView, 17개 매직 명령 및 172개 유니코드 약어 완성.
+  \item \textbf{Rocq XML STM 커널(\code{rocq\_kernel}):} 외부 OPAM 패키지 추가 없이 표준 \code{coqidetop}과 직접 통신하는 XML 드라이버, 중첩 주석과 줄임표(\code{..})를 인지하는 어휘 문장 토크나이저, 그리고 오류 발생 시 셀 전체를 진입 상태로 되돌리는 원자적 롤백.
+  \item \textbf{다중 커널 Web Proof Studio 및 협업 인프라(\code{web.py}, \code{static/}):} LRU 16슬롯 ZMQ 커널 풀, 외부 라이브러리 없는 RESP2+TLS Redis 클라이언트와 HOT/COLD 생명주기 관리자, SSE 실시간 동기화 및 Project-Agora 양방향 캔버스 브리지.
+\end{itemize}
+
+이후 제2장에서는 전체 4계층 아키텍처와 코드베이스 규모를 개관하고, 제3장과 제4장에서는 각각 Lean 4 커널과 Rocq 커널의 프로토콜·상태 관리·InfoView 메커니즘을 상세히 분석한다. 제5장은 웹 플랫폼과 협업 생명주기를 다루며, 제6장에서는 CLI 진단·예제 증명·테스트 스위트 검증 결과와 함께 현 통합상의 공학적 한계를 평가하고, 제7장에서 결론을 맺는다.
+
+\section{전체 시스템 아키텍처 개요}
+
+\subsection{이중 실행 경로 기반 4계층 아키텍처}
+
+\begin{figure*}[!t]
+\centering
+\begin{tikzpicture}[
+  font=\footnotesize,
+  box/.style={draw, rounded corners=2pt, align=center, inner sep=4pt, minimum height=9mm},
+  layer/.style={draw=black!45, dashed, rounded corners=3pt, inner sep=9pt},
+  layerlbl/.style={fill=white, inner sep=1.5pt, font=\scriptsize\bfseries, anchor=west},
+  arr/.style={-{Stealth[length=2.2mm]}, semithick},
+  biarr/.style={{Stealth[length=2.0mm]}-{Stealth[length=2.0mm]}, semithick}
+]
+% Layer 1: Clients
+\node[box, fill=blue!6, text width=4.3cm] (jlab) {JupyterLab / nbclient / IDE\\(표준 Jupyter ZMQ 클라이언트)};
+\node[box, fill=blue!6, text width=9.9cm, right=0.8cm of jlab] (webclient) {VS Code 스타일 Web Proof Studio (\code{index.html}, \code{app.js}, \code{styles.css})\\Explorer · Editor Tabs · SSE Sync · InfoView (\code{mountInteractiveHtml}) · Agora Bridge};
+
+% Layer 2: Transport & Control Plane
+\node[box, fill=teal!6, text width=4.3cm, below=0.75cm of jlab] (zmq) {표준 Jupyter ZMQ 프로토콜\\(\code{ipykernel.kernelbase.Kernel})};
+\node[box, fill=teal!6, text width=9.9cm, below=0.75cm of webclient] (https) {TLS 1.2+ HTTPS 서버 (\code{ProofNotebookHTTPServer} / \code{ProofStudioApp})\\\code{ProofKernelPool} (LRU $\le 16$) · \code{WorkspaceLifecycleManager} · \code{RealtimeNotebookHub} (SSE)};
+
+% Layer 3: Kernel Engines
+\node[box, fill=yellow!10, text width=4.5cm, below=0.95cm of https.south west, anchor=north west, xshift=-3.6cm] (klean) {\code{lean4\_kernel} (\code{Lean4Kernel})\\\code{LeanSession} (DAG) · \code{infoview} · 17 Magics};
+\node[box, fill=yellow!10, text width=4.5cm, right=0.45cm of klean] (krocq) {\code{rocq\_kernel} (\code{RocqKernel})\\\code{RocqSession} (STM) · Tokenizer · 8 Magics};
+\node[box, fill=yellow!10, text width=3.5cm, right=0.45cm of krocq] (kpy) {\code{ipykernel\_launcher}\\Python 3 연산 커널};
+
+% Layer 4: Prover Subprocesses & Persistence
+\node[box, fill=gray!10, text width=4.5cm, below=0.80cm of klean] (plean) {\code{REPLProcess} (\code{repl} / \code{lake env repl})\\JSON + \code{\textbackslash n\textbackslash n} 프레이밍 (\code{v4.35.0})};
+\node[box, fill=gray!10, text width=4.5cm, below=0.80cm of krocq] (procq) {\code{RocqProcess} (\code{coqidetop.opt})\\XML + \code{-main-channel stdfds}};
+\node[box, fill=green!7, text width=3.5cm, below=0.80cm of kpy] (store) {\code{AgoraRedisClient} (HOT, 3600s)\\\code{NotebookStore} (Disk COLD)\\\code{AgoraBridge} (HTTPX / Canvas)};
+
+% Arrows
+\draw[biarr] (jlab) -- node[right, font=\scriptsize]{ZMQ} (zmq);
+\draw[biarr] (webclient) -- node[right, font=\scriptsize]{HTTPS / SSE} (https);
+\draw[biarr] (zmq.south) -- (klean.north -| zmq.south);
+\draw[arr] (https.south -| klean.north) -- node[pos=0.68, left, font=\scriptsize]{\code{lean4}} (klean.north);
+\draw[arr] (https.south -| krocq.north) -- node[pos=0.68, left, font=\scriptsize]{\code{rocq}} (krocq.north);
+\draw[arr] (https.south -| kpy.north) -- node[pos=0.68, right, font=\scriptsize]{\code{python}} (kpy.north);
+\draw[biarr] (klean) -- node[pos=0.60, right, font=\scriptsize]{stdin/out} (plean);
+\draw[biarr] (krocq) -- node[pos=0.60, right, font=\scriptsize]{stdfds} (procq);
+\draw[biarr] (https.east) -- ++(0.65,0) |- node[pos=0.25, right, font=\scriptsize, align=left]{HOT/COLD\\동기화} (store.east);
+
+% Group background labels
+\begin{scope}[on background layer]
+  \node[layer, fit=(jlab)(webclient)] (l1) {};
+  \node[layer, fit=(zmq)(https)] (l2) {};
+  \node[layer, fit=(klean)(krocq)(kpy)] (l3) {};
+  \node[layer, fit=(plean)(procq)(store)] (l4) {};
+  \node[layerlbl] at ([xshift=4mm]l1.north west) {1. Presentation};
+  \node[layerlbl] at ([xshift=4mm]l2.north west) {2. Transport / Pool};
+  \node[layerlbl, anchor=center] at ([xshift=-2mm]kpy.west |- l3.north) {3. Kernel Logic};
+  \node[layerlbl, anchor=center] at ([xshift=-2mm]store.west |- l4.north) {4. Prover \& State};
+\end{scope}
+\end{tikzpicture}
+\caption{Proof-Notebook 4계층 하이브리드 아키텍처. 표준 Jupyter ZMQ 실행 경로와 HTTPS 기반 Web Proof Studio 경로가 동일한 커널 엔진(\code{lean4\_kernel}, \code{rocq\_kernel}, \code{ipykernel})을 공유한다.}
+\label{fig:architecture}
+\end{figure*}
+
+Proof-Notebook 시스템은 Fig.~\ref{fig:architecture}에 나타낸 바와 같이 네 개의 계층과 두 개의 접속 경로로 구조화된다. 첫 번째 경로는 표준 Jupyter ZeroMQ 프로토콜을 통해 JupyterLab, VS Code Notebook 또는 \code{nbclient}가 커널 스펙(\code{lean4}, \code{rocq})에 직접 연결되는 전통적 방식이다. 두 번째 경로는 \code{lean4-proof-studio}(또는 \code{lean4-kernel serve}) 명령으로 기동하는 전용 웹 워크벤치로서, 단일 워크스페이스 안에 Lean 4(및 백엔드 풀의 Rocq), Python 3, Markdown 셀을 혼합 배치하고 Redis·디스크·Project-Agora 플랫폼 간 양방향 동기화를 수행한다.
+
+\code{pyproject.toml}은 Python 3.10 이상을 요구하며 핵심 런타임 의존성을 \code{ipykernel>=6.20}, \code{jupyter\_client>=8.0}, \code{httpx>=0.25} 단 3종으로 최소화하였다(\code{requirements.txt} 기준 \code{ipykernel==7.4.0}, \code{jupyter\_client==8.10.0}, \code{pyzmq==27.3.0} 등에서 검증). 외부 Redis 클라이언트 라이브러리조차 내장 RESP2 구현(\code{AgoraRedisClient})으로 대체하여 배포 복잡도를 낮췄다.
+
+\subsection{모듈 구성 및 코드베이스 규모}
+저장소의 실측 코드 라인 수(\code{wc -l})와 주요 모듈 책임은 Table~\ref{tab:codebase_metrics}에 정리하였다. Python 커널과 웹 서버(\code{src/lean4\_kernel/} 8,032라인, \code{src/rocq\_kernel/} 2,949라인), 정적 프론트엔드(\code{static/} 4,403코드라인), 테스트 스위트(1,578라인) 및 예제(66코드라인, 문서 포함 151라인)를 합산하면 총 17,183라인에 달한다. 특히 \code{src/lean4\_kernel/web.py}(3,395라인)와 \code{app.js}(2,338라인)가 협업 스튜디오의 제어 평면과 UI 평면을 담당한다.
+
+\begin{table}[!t]
+\caption{Proof-Notebook 모듈별 실측 규모 (\code{wc -l}) 및 핵심 역할}
+\label{tab:codebase_metrics}
+\centering
+\scriptsize
+\begin{tabularx}{\columnwidth}{@{}l r X@{}}
+\toprule
+\textbf{구성 요소 / 경로} & \textbf{라인 수} & \textbf{주요 클래스 및 기능} \\
+\midrule
+\multicolumn{3}{@{}l}{\textbf{Lean 4 커널 패키지 (\code{src/lean4\_kernel/}, 소계 8,032라인)}} \\
+\code{repl.py} & 601 & \code{REPLBinaryManager}, \code{REPLProcess}, JSON 프레이밍 \\
+\code{session.py} & 974 & \code{LeanSession}, \code{EnvNode}/\code{ProofNode} DAG, 복구 \\
+\code{infoview.py} & 1,260 & \code{InfoTree} 추출, SSR+CSR split-pane 위젯 \\
+\code{magics.py} & 454 & 17종 라인/셀 매직 디스패처 (\code{dispatch\_magic}) \\
+\code{renderer.py} & 309 & \code{text/plain}·\code{text/html} 이중 MIME 렌더러 \\
+\code{kernel.py} & 440 & \code{Lean4Kernel} (\code{do\_execute}/\code{complete}/\code{inspect}) \\
+\code{unicode\_map.py} & 311 & 유니코드 172, 키워드 62, 전술 56 매핑 \\
+\code{install.py} & 264 & 커널스펙 설치·\code{doctor}·CLI 서브커맨드 \\
+\code{web.py} & 3,395 & HTTPS 스튜디오, 커널 풀, Redis/Agora 브리지 \\
+\code{\_\_init\_\_.py}, \code{\_\_main\_\_.py} & 24 & 패키지 메타데이터(\code{0.1.0}) 및 진입점 \\
+\midrule
+\multicolumn{3}{@{}l}{\textbf{Rocq 커널 패키지 (\code{src/rocq\_kernel/}, 소계 2,949라인)}} \\
+\code{xml\_protocol.py} & 395 & XML 빌더/파서, 스트림 위생 처리 \\
+\code{driver.py} & 288 & \code{RocqProcess} (\code{coqidetop -main-channel stdfds}) \\
+\code{session.py} & 689 & \code{tokenize\_sentences}, \code{STMNode}, 원자적 롤백 \\
+\code{infoview.py} & 685 & \code{RocqStepInfo} 추출, split-pane InfoView \\
+\code{kernel.py} & 420 & \code{RocqKernel}, 8종 매직, 완결성 검사 \\
+\code{unicode\_map.py} & 283 & 유니코드 123, 키워드 66, 전술 74 매핑 \\
+\code{install.py} & 159 & Rocq 커널스펙 설치 및 \code{Check nat.} 진단 \\
+\code{\_\_init\_\_.py}, \code{\_\_main\_\_.py} & 30 & 패키지 공개 API 및 CLI 진입점 \\
+\midrule
+\multicolumn{3}{@{}l}{\textbf{웹 프론트엔드, 테스트, 예제 및 데모 노트북}} \\
+\code{static/\{html,js,css,md\}} & 4,473 & \code{app.js}(2,338), \code{styles.css}(1,748), \code{index.html}(317), \code{README}(70) \\
+\code{tests/*.py} & 1,578 & 6개 테스트 파일, 총 30개 테스트 케이스 \\
+\code{examples/*} & 151 & \code{Arithmetic.lean}(23), \code{Arithmetic.v}(43), \code{README}(85) \\
+\midrule
+\textbf{측정 합계 (코드/테스트)} & \textbf{17,183} & 별도 \code{notebooks/*.ipynb}(2종), \code{vendor/repl/} 포함 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Lean 4 커널 엔진 (\code{lean4\_kernel})}
+
+\subsection{REPL 프로세스 수명주기 및 JSON 프레이밍 (\code{repl.py})}
+\code{lean4\_kernel}은 저장소 내 \code{vendor/repl/}(\code{leanprover/lean4:v4.35.0}, \code{lakefile.toml}에서 \code{supportInterpreter = true} 활성화)에 포함된 \code{leanprover-community/repl} 바이너리~\cite{morrison_repl}를 하위 프로세스로 구동한다. \code{REPLBinaryManager}는 우선 프로젝트 로컬 또는 \code{vendor/repl} 빌드를 탐색하고, 부재 시 툴체인 버전별로 \code{\textasciitilde/.cache/lean4-kernel/repl} 경로에 컴파일된 캐시를 관리한다. \code{resolve\_lean\_sysroot} 및 \code{detect\_lean\_version}은 \code{elan} 기반 작업 공간의 프로젝트 컨텍스트를 판별하며, 유효한 \code{project\_dir}(예: \code{lakefile.toml}/\code{lean-toolchain})가 감지되면 \code{REPLProcess}는 \code{lake env repl}을 실행하여 해당 Mathlib/프로젝트 의존성을 상속한다.
+
+프로세스 간 통신(IPC)은 \code{stdin}/\code{stdout} 상에서 공백 줄(\code{\textbackslash n\textbackslash n})로 구분된 단일 라인 콤팩트 JSON 메시지를 교환한다. 모든 요청은 \code{\_req\_lock}으로 직렬화되며, 백그라운드 데몬 스레드(\code{\_stdout\_reader}, \code{\_stderr\_reader})가 파이프 교착 상태 없이 비동기 출력을 큐에 적재한다. 특히 Lean C 런타임이나 \code{IO.println}이 JSON 블록 직전에 원시 표준 출력을 방출하는 경우 \code{parse\_repl\_json\_block}이 선행 텍스트를 \code{aux\_stdout}으로 분리 추출하고 뒤따르는 JSON 객체만 안전하게 역직렬화한다. 종료 및 타임아웃 복구 시에는 \code{start\_new\_session=True}로 생성된 프로세스 그룹 전체에 \code{SIGTERM}을 전송한 뒤 1초 유예 후 \code{SIGKILL}을 발행하여 고아 Lean 프로세스 잔류를 차단한다.
+
+\subsection{불변 스냅샷 DAG와 자동 백트래킹 (\code{session.py})}
+\code{REPLProcess}가 반환하는 정수형 \code{env} 및 \code{proofState} 핸들은 부수 효과 없는 불변 스냅샷을 가리킨다. \code{LeanSession}은 이를 명시적 방향성 비순환 그래프(DAG)로 모델링한다.
+
+\begin{definition}[환경 스냅샷 DAG]
+Lean 세션의 명령 실행 이력을 $G_E = (V_E, E_E)$라 할 때, 각 노드 $v \in V_E$는 \code{EnvNode} 튜플 $(e_v, p_v, c_v, \text{cid}_v, \mathcal{D}_v)$로 정의된다. 여기서 $e_v \in \mathbb{N}_{\ge 0}$는 REPL 환경 ID, $p_v \in V_E \cup \{\bot\}$는 부모 노드(\code{parent\_env}), $c_v$는 정규화된 소스 코드, $\text{cid}_v$는 Jupyter 셀 식별자, $\mathcal{D}_v$는 \code{extract\_declared\_names}가 추출한 선언 심볼 집합이다. 현재 활성 노드를 $v_{\text{curr}}$라 하면 루트 $v_0$에서 $v_{\text{curr}}$까지의 유일한 계보(Lineage)는 $\pi(v_{\text{curr}}) = (v_0, v_1, \dots, v_k)$이다.
+\end{definition}
+
+전술 모드 상태 역시 \code{ProofNode}(\code{proof\_state}, \code{parent\_proof}, \code{env\_id}, \code{tactic})로 분리 추적되어 \code{\%tactic} 또는 \code{\%\%tactic}을 통한 다단계 증명 탐색과 \code{sorry} 기반 상호작용을 지원한다.
+
+노트북 셀을 비순차적으로 재실행할 때 발생하는 대표적 오류는 동일 이름의 재선언이다. \code{LeanSession.\_try\_auto\_backtrack}은 다음 절차로 이를 자동 해결한다.
+\begin{enumerate}
+  \item REPL 오류 메시지에서 유니코드 곡선 따옴표(\code{‘...’})와 ASCII 따옴표(\code{'...'})를 모두 정규 표현식으로 매칭하여 충돌 식별자 $\sigma$ 또는 동일 \code{cell\_id}를 탐색한다.
+  \item \code{active\_lineage()}를 따라 상위 조상을 역추적하여 $\sigma \in \mathcal{D}_{v_j}$ 또는 $\text{cid}_{v_j} = \text{cid}_{\text{req}}$를 만족하는 가장 이른 충돌 노드 $v_j$를 특정한다.
+  \item 활성 포인터를 $p_{v_j}$(\code{parent\_env})로 되돌리고, 수정된 새 셀을 실행하여 분기 노드 $v_j'$를 생성한 뒤 기존 후손 계보 $(v_{j+1}, \dots, v_k)$를 순차 재실행한다. 단, 헤더 \code{import}가 선두에 존재하면(\code{starts\_with\_header\_import}) REPL의 최상위 \code{env=None} 초기화 규약에 맞춰 세션을 재시작한다.
+\end{enumerate}
+
+이와 유사하게 프로세스가 타임아웃 또는 크래시로 종료되면 \code{\_recover\_after\_crash}가 프로세스 그룹을 회수하고 새 \code{REPLProcess}를 기동한 뒤 마지막 정상 노드의 \code{active\_lineage()}를 루트부터 결정론적으로 재실행하여 세션을 자동 복구한다. 추가로 \code{pickle}/\code{unpickle}(.olean 직렬화 연동), \code{format\_tactic\_input}(여러 줄 전술을 \code{(\textbackslash n  ...\textbackslash n)} 블록으로 묶어 REPL 단일 전술 호출에 적합하게 변환), \code{inspect\_symbol}(\code{\#check}/\code{\#print} 질의), \code{undo}, \code{reset}, \code{switch\_project} 메서드를 제공한다.
+
+\subsection{\code{InfoTree} 재귀 추출 및 하이브리드 InfoView (\code{infoview.py}, \code{renderer.py})}
+VS Code Lean 4 확장과 유사한 커서 연동 증명 검사 경험을 노트북 출력 셀에 구현하기 위해 \code{infoview.py}(1,260라인)는 REPL이 \code{infotree} 옵션으로 반환하는 재귀 JSON 트리를 순회한다. \code{extract\_infoview\_payload}는 트리의 \code{TacticInfo} 및 \code{TermInfo} 노드를 방문하여 각 스텝을 \code{TacticStepInfo}(\code{goalsBefore} $\rightarrow$ \code{goalsAfter} 및 \code{subgoals\_opened})와 \code{TermItemInfo}로 정규화한다. 이때 구조적 구두점이나 서식성 노드 등 실질적 상태 변화가 없는 노드는 \code{NON\_SUBSTANTIVE\_TACTIC\_KINDS} 집합으로 필터링하며, 트리 정보가 누락된 환경에서는 평면 \code{tactics} 리스트로 안전하게 폴백한다. 또한 비선형 산술 목표에서 \code{omega} 전술이 실패할 경우 \code{\_augment\_error\_message}가 한국어/영문 이중 안내 힌트를 부가하여 학습자 디버깅을 돕는다.
+
+렌더링 아키텍처는 \textbf{SSR + CSR 하이브리드 위젯} 구조를 채택하였다. \code{\_render\_initial\_info\_pane\_html}이 초기 목표 상태를 서버 측에서 즉시 HTML로 생성하므로 자바스크립트가 비활성화된 정적 \code{.ipynb} 뷰어에서도 첫/마지막 상태가 표시된다. 이후 브라우저에서 \code{render\_infoview\_html}의 스크립트가 마운트되면 좌우 분할(\code{46\% / 1fr}, 뷰포트 720px 이하 반응형 전환, 각 패널 최대 높이 440px) UI가 활성화되며, \code{Prev}/\code{Next} 스텝 이동, \code{Before→After}/\code{After}/\code{Before} 보기 전환, \code{Expand} 토글, 그리고 \code{bindParentEditorCursor} 훅을 통해 부모 에디터(Web Studio의 \code{textarea}, Jupyter Classic의 CodeMirror 5 \code{.CodeMirror}, JupyterLab의 CodeMirror 6 \code{.cm-content})의 캐럿 오프셋에 대응하는 전술 스텝을 실시간 하이라이트한다. \code{renderer.py}의 \code{render\_outcome}은 \code{text/plain}과 \code{text/html} MIME을 동시 방출하되, 단순 선언 성공으로 출력이 비어 있고 InfoView 스텝도 없을 때는 \code{None}을 반환해 불필요한 공백 출력을 억제하며, turnstile 기호($\vdash$) 강조와 \code{all\_tactics}·원시 \code{InfoTree} 접힘 섹션을 제공한다.
+
+\subsection{매직 명령, 구문 완결성 및 커널 통합 (\code{magics.py}, \code{kernel.py})}
+\code{Lean4Kernel}(\code{ipykernel.kernelbase.Kernel} 상속)은 표준 Jupyter 메시지 핸들러를 구현한다.
+\begin{itemize}
+  \item \textbf{실행 (\code{do\_execute}):} 셸 요청의 \code{parent.metadata.cellId}를 읽어 세션 노드에 기록하며, 전술 실패 시에도 부분 \code{InfoViewPayload}를 추출해 오류 지점 직전의 목표 상태를 즉시 시각화한다.
+  \item \textbf{매직 명령 (\code{magics.py}):} \code{MAGIC\_NAMES}에 정의된 17종 매직—상태 조회(\code{\%help}, \code{\%lsmagic}, \code{\%env}, \code{\%history}, \code{\%infoview}, \code{\%goals}), 전술 실행(\code{\%tactic}, \code{\%\%tactic}), 이력/스냅샷(\code{\%undo}, \code{\%reset}, \code{\%load}, \code{\%pickle}, \code{\%unpickle}), 프로젝트/원시 제어(\code{\%project}, \code{\%config}, \code{\%repl\_json}, \code{\%\%repl\_json})—을 지원한다.
+  \item \textbf{완성 및 검사 (\code{do\_complete}, \code{do\_inspect}):} \code{unicode\_map.py}의 172개 역슬래시 유니코드 약어(\code{\textbackslash forall} $\rightarrow \forall$ 등) 확장을 최우선 처리한 뒤 매직 명령, 세션 내 선언된 사용자 식별자, 62개 \code{LEAN4\_KEYWORDS}, 56개 \code{LEAN4\_TACTICS} 순으로 후보를 제시한다. \code{do\_inspect}는 \code{inspect\_symbol}로 타입과 정의를 팝오버에 반환한다.
+  \item \textbf{구문 완결성 (\code{do\_is\_complete}):} 중첩 주석 \code{/- ... -/}, 문자열 리터럴, 익명 생성자 쌍 $\langle\dots\rangle$ 균형 및 줄 끝 연접 접미사를 추적하여 다중 행 REPL 입력 대기 상태를 판별한다.
+\end{itemize}
+
+\section{Rocq (Coq) 커널 엔진 (\code{rocq\_kernel})}
+
+\subsection{설계 결정 및 대안 비교}
+\code{docs/designs/rocq\_kernel.md}~\cite{rocq_design_2026}에 문서화된 아키텍처 검토 과정에서 Rocq 백엔드를 구현하기 위한 세 가지 대안(\code{SerAPI}, \code{vscoq}/\code{coq-lsp}, 일괄 \code{coqc})이 평가되었다. \code{SerAPI}는 별도 OPAM 설치가 필요하고 최신 Rocq 버전 호환 유지가 중단되는 위험이 있었으며, \code{vscoq}/\code{coq-lsp}는 LSP 프레임 오버헤드와 배포 버전 파편화 문제가 존재하였다. 반면 배치 컴파일러 \code{coqc}는 셀 단위 증분 백트래킹과 문장별 목표 추적이 불가능하다. 이에 따라 본 프로젝트는 Coq/Rocq 기본 배포판에 내장된 \code{coqidetop.opt}/\code{coqidetop}의 네이티브 XML 프로토콜(\code{-main-channel stdfds})을 직접 구현하는 방안을 채택하였다.
+
+\subsection{\code{coqidetop} XML 프로토콜 드라이버 (\code{xml\_protocol.py}, \code{driver.py})}
+\code{RocqProcess}는 \code{find\_coqidetop\_binary} 및 \code{detect\_rocq\_version}으로 탐지한 \code{coqidetop} 프로세스를 \code{-main-channel stdfds} 플래그로 기동한다. XML 프레이밍은 \code{threading.Lock} 내부에서 \code{select.select}를 이용해 응답 종료 태그 \code{</value>}가 도착할 때까지 읽은 뒤, 비동기 피드백 XML 조각을 유실하지 않도록 추가로 \code{5\,ms} 후행 드레인(Trailing Drain)을 수행한다.
+
+프로토콜 호환성과 파싱 안정성을 위해 \code{\_sanitize\_xml\_stream}은 XML 1.0 비호환 제어 바이트를 제거하고 \code{\&nbsp;} 엔티티를 \code{\&\#160;}으로 치환한다. \code{parse\_xml\_response}는 Coq/Rocq 세대 간 스키마 차이(\code{<state\_id>}와 \code{<stateid>}, \code{<hyp>}, \code{<richpp>})를 일관된 \code{RocqValue}, \code{RocqFeedback}, \code{RocqGoalsBundle}(\code{focused}, \code{background}, \code{shelved}, \code{admitted}) 데이터클래스로 파싱하며, 7종의 XML 원시 호출(\code{Init}, \code{Add}, \code{Edit\_at}, \code{Goal}, \code{Status}, \code{Query}, \code{Quit})과 \code{SIGINT} 인터럽트를 지원한다.
+
+\subsection{어휘 기반 문장 토크나이저 및 셀 원자적 롤백 (\code{session.py})}
+Lean 4가 블록 단위로 JSON 명령을 평가하는 것과 달리, Rocq는 마침표(\code{.})로 종결되는 문장(Vernacular/Tactic) 단위로 STM 상태 ID를 전진시킨다~\cite{barras2015asynchronous}. \code{tokenize\_sentences}는 순수 정규식 분할 시 발생하는 오분할을 막기 위해 다음 어휘 규칙을 상태 기계로 구현하여 \code{SentenceSpan} 목록을 생성한다.
+\begin{itemize}
+  \item 중첩 Coq 주석 \code{(* ... *)} 내부의 마침표 무시.
+  \item 이중 따옴표 이스케이프 \code{""}를 포함한 문자열 리터럴 내부 마침표 무시.
+  \item 범위 표기 줄임표 \code{..}와 식별자 접근자(모듈 경로 \code{Nat.add} 등) 구분: 마침표 직후 공백 또는 파일 끝(EOF)이 뒤따를 때만 문장 종결로 확정.
+  \item 증명 구조 불릿과 중괄호(\code{-}, \code{+}, \code{*}, \code{\{}, \code{\}})를 독립 실행 단위로 분리하는 \code{\_split\_bullet\_subcommands}.
+\end{itemize}
+
+\begin{figure}[!t]
+\centering
+\begin{tikzpicture}[
+  font=\scriptsize,
+  nd/.style={draw, rounded corners=2pt, minimum width=1.15cm, minimum height=5.5mm, align=center},
+  arr/.style={-{Stealth[length=1.8mm]}, semithick}
+]
+% Part (a) Lean 4 DAG Backtrack
+\node[anchor=west, font=\scriptsize\bfseries] at (0, 2.35) {(a) \code{LeanSession}: \code{EnvNode} DAG 재선언 자동 백트래킹};
+\node[nd, fill=blue!8] (e0) at (0.65, 1.65) {$e_0$\\{\tiny Root}};
+\node[nd, fill=gray!15] (e1) at (2.35, 1.65) {$e_1$\\{\tiny \code{def f}}};
+\node[nd, fill=gray!15] (e2) at (4.10, 1.65) {$e_2$\\{\tiny \code{lem}}};
+\node[nd, fill=green!10] (e3) at (2.35, 0.70) {$e_3$\\{\tiny \code{def f'}}};
+\node[nd, fill=green!10] (e4) at (4.10, 0.70) {$e_4$\\{\tiny replay \code{lem}}};
+
+\draw[arr, dashed] (e0) -- (e1);
+\draw[arr, dashed] (e1) -- (e2);
+\draw[arr] (e0) |- node[pos=0.73, below, yshift=-1pt, font=\tiny]{재실행 분기} (e3);
+\draw[arr] (e3) -- (e4);
+
+% Part (b) Rocq STM Rollback
+\node[anchor=west, font=\scriptsize\bfseries] at (0, -0.15) {(b) \code{RocqSession}: STM 셀 진입점 원자적 롤백 (\code{Edit\_at})};
+\node[nd, fill=blue!8] (s0) at (0.65, -0.95) {$s_0$\\{\tiny Init}};
+\node[nd, fill=blue!12] (s1) at (2.35, -0.95) {$s_1$\\{\tiny Cell Entry}};
+\node[nd, fill=yellow!15] (s2) at (4.10, -0.95) {$s_2$\\{\tiny Sent. 1 OK}};
+\node[nd, fill=red!14] (s3) at (5.85, -0.95) {$s_3$\\{\tiny Sent. 2 Err}};
+
+\draw[arr] (s0) -- (s1);
+\draw[arr] (s1) -- node[above, font=\tiny]{\code{Add}} (s2);
+\draw[arr] (s2) -- node[above, font=\tiny]{\code{Add}} (s3);
+\draw[arr, red!70!black, bend left=36] (s3.south) to node[below, font=\tiny]{\code{Edit\_at}($s_1$) 원자적 롤백 (\code{rollback\_whole\_cell\_on\_error})} (s1.south);
+\end{tikzpicture}
+\caption{두 증명기 커널의 상태 백트래킹 비교. (a) Lean 4는 불변 환경 스냅샷 DAG에서 충돌 조상의 \code{parent\_env}로 분기해 후손을 재실행하고, (b) Rocq는 셀 내부 부분 문장 실패 시 \code{Edit\_at}으로 셀 진입 STM 상태 ID($s_1$)까지 즉시 원상 복구한다.}
+\label{fig:dag_rollback}
+\end{figure}
+
+\code{RocqSession}은 \code{STMNode} 계보와 \code{\_cell\_entry\_state} 매핑을 결합해 두 가지 안전장치를 제공한다(Fig.~\ref{fig:dag_rollback}(b)). 첫째, \code{auto\_backtrack}이 동일 \code{cell\_id} 또는 \code{extract\_declared\_name} 충돌을 감지하면 해당 진입 상태로 \code{Edit\_at}을 호출한 뒤 실행한다. 둘째, 하나의 셀 안에 여러 문장이 있을 때 후속 문장에서 오류가 발생하면 부분 적용 상태를 남기지 않고 \code{rollback\_whole\_cell\_on\_error=True} 정책에 따라 셀 실행 전 상태 $s_1$로 \code{Edit\_at} 원자적 롤백을 수행한다. 크래시 시에는 \code{\_recover\_after\_crash}가 \code{STMNode} 계보를 재실행하고, \code{inspect\_symbol}은 XML \code{Query} 명령을 통해 타입·정의 검색을 수행한다.
+
+\subsection{Rocq InfoView 및 두 커널 간 아키텍처 비교}
+\code{rocq\_kernel/infoview.py}(685라인)는 각 문장 실행 직후 \code{Goal} RPC로 수집한 \code{RocqGoalsBundle}을 \code{RocqStepInfo}로 변환한다. Lean InfoView와 동등한 split-pane 위젯(\code{Before→After}/\code{After}/\code{Before}, focused/background/shelved/admitted 섹션 구분, SSR 폴백)을 제공하며, 웹 스튜디오 프론트엔드와 직접 연동되는 \code{root.selectCursor} 메서드를 노출한다. \code{RocqKernel}은 8종의 매직(\code{\%help}, \code{\%lsmagic}, \code{\%goals}, \code{\%state}, \code{\%history}, \code{\%undo}, \code{\%reset}, \code{\%load})과 123개 유니코드, 66개 \code{ROCQ\_KEYWORDS}, 74개 \code{ROCQ\_TACTICS}를 지원한다. 두 증명기 커널의 기술적 차이는 Table~\ref{tab:lean_vs_rocq}에 요약하였다.
+
+\begin{table}[!t]
+\caption{Lean 4 커널과 Rocq 커널 아키텍처 상세 비교}
+\label{tab:lean_vs_rocq}
+\centering
+\scriptsize
+\begin{tabularx}{\columnwidth}{@{}l X X@{}}
+\toprule
+\textbf{비교 항목} & \textbf{\code{lean4\_kernel}} & \textbf{\code{rocq\_kernel}} \\
+\midrule
+하위 프로세스 & \code{repl} / \code{lake env repl} (\code{v4.35.0}) & \code{coqidetop.opt} / \code{coqidetop} \\
+IPC 프로토콜 & JSON + \code{\textbackslash n\textbackslash n} stdin/stdout & XML (\code{</value>} + 5\,ms 드레인) \\
+상태 추상화 & 불변 \code{EnvNode}(\code{env}), \code{ProofNode} & \code{STMNode}(\code{state\_id}), 셀 진입점 \\
+구문 분할 & REPL 전체 파싱 + \code{InfoTree} & \code{tokenize\_sentences} + 불릿 분리 \\
+재실행 복구 & \code{active\_lineage} 역추적·후손 재실행 & \code{Edit\_at} 후퇴 및 재실행 \\
+부분 오류 처리 & 부분 \code{InfoView} 반환 + 힌트 & \code{Edit\_at} 셀 원자적 롤백 \\
+크래시 복구 & \code{killpg} 후 계보 재실행 & \code{Quit}/\code{kill} 후 계보 재실행 \\
+InfoView 계층 & \code{TacticInfo}/\code{TermInfo}, 1,260라인 & \code{RocqGoalsBundle} 4섹션, 685라인 \\
+매직 / 어휘 맵 & 매직 17 · Uni 172 · KW 62 · Tac 56 & 매직 8 · Uni 123 · KW 66 · Tac 74 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Web Proof Studio 및 Project-Agora 플랫폼 (\code{web.py}, \code{static/})}
+
+\subsection{HTTPS 전용 보안 서버 및 인증 (\code{ProofNotebookHTTPServer})}
+웹 서버 모듈 \code{web.py}(\code{src/\allowbreak lean4\_kernel/}, 3,395라인)는 \code{Threading\-HTTP\-Server} 기반의 웹 애플리케이션 서버(\code{Proof\-Notebook\-HTTP\-Server}, 기본 포트 \code{8890})를 제공한다. \code{resolve\_tls\_credentials}는 평문 HTTP 서비스를 허용하지 않고 TLS $\ge 1.2$ 기반 HTTPS만을 강제하며, 외부 인증서가 지정되지 않은 로컬 개발 환경에서는 \code{openssl}을 호출해 EC P-256 자체 서명 인증서를 자동 생성한다. \code{ProofStudioApp}은 연구자 JWT 토큰을 SHA-256 해시 키로 120초 TTL 캐싱하여 반복 인증 부하를 줄이면서 사용자별 워크스페이스 격리를 유지한다.
+
+\subsection{멀티 커널 LRU 풀 (\code{ProofKernelPool})}
+표준 Jupyter 서버가 노트북 파일 전체를 하나의 고정 커널에 묶는 것과 달리, \code{ProofKernelPool}은 단일 워크스페이스 내부에서 셀 언어(\code{\_normalize\_language}: \code{lean4}, \code{rocq}/\code{coq}, \code{python})에 따라 독립된 ZMQ \code{KernelManager}를 라우팅한다.
+\begin{itemize}
+  \item \textbf{키 및 용량 제한:} 커널 풀 키는 \code{user\_id::notebook\_id::lang} 형식을 따르며, 최대 동시 실행 커널 수를 $k_{\max} = 16$으로 제한하는 LRU(Least Recently Used) 캐시로 메모리 고갈을 방지한다.
+  \item \textbf{인메모리 커널 스펙 합성:} 호스트에 \code{jupyter kernelspec install}이 사전에 수행되지 않은 환경에서도 모듈 경로를 이용해 임시 커널 스펙을 즉석 합성하여 커널을 기동할 수 있다.
+  \item \textbf{출력 트렁케이션 가드:} 대규모 로그나 시각화로 브라우저·Redis가 포화되지 않도록 셀당 출력 항목 수 \code{MAX\_OUTPUT\_ITEMS=64}, 스트림 문자 수 \code{MAX\_STREAM\_CHARS=128\,KiB}, HTML 출력 \code{MAX\_HTML\_CHARS=512\,KiB}, 이미지 \code{MAX\_IMAGE\_CHARS=2\,MiB} 상한을 강제한다.
+\end{itemize}
+또한 \code{ProofKernelPool.complete}는 활성 ZMQ 커널 셸 채널 우선 조회 및 빠른 유니코드/키워드 로컬 완성을 제공하며, \code{inspect\_symbol}은 커널 \code{inspect\_request}를 통해 심볼 시그니처를 조회한다.
+
+\subsection{제로 의존성 Redis 및 HOT/COLD 생명주기 (\code{WorkspaceLifecycleManager})}
+\code{AgoraRedisClient}는 \code{redis-py} 같은 외부 패키지 의존성 없이 Python 표준 \code{socket}과 \code{ssl}만으로 Redis RESP2 프로토콜(TCP 및 TLS, ACL \code{AUTH} 지원, 기본 엔드포인트 \code{172.20.0.2:6379}, 기본 TTL \code{3600\,s})을 직접 구현하였다. 또한 테스트나 오프라인 단독 실행 환경에서 Redis 접속이 불가할 경우 동일한 API 시맨틱을 유지하는 스레드 안전 인메모리 폴백 저장소로 자동 전환된다.
+
+\begin{figure}[!t]
+\centering
+\begin{tikzpicture}[
+  font=\scriptsize,
+  st/.style={draw, rounded corners=3pt, text width=4.4cm, align=center, inner sep=4pt, minimum height=0.88cm},
+  arr/.style={-{Stealth[length=2mm]}, semithick}
+]
+\node[st, fill=gray!10] (cold) {\textbf{COLD 상태} (디스크 영속화)\\\code{users/<uid>/notebooks} JSON 저장 (활성 커널 없음)};
+\node[st, fill=orange!12, below=0.80cm of cold] (hot) {\textbf{HOT 상태} (Redis + 실시간 협업)\\\code{proof:workspace:<id>:\{doc,meta,clients\}}\\\code{cacheGeneration++} · LRU 커널 · SSE 활성화};
+
+\draw[arr] ([xshift=-1.1cm]cold.south) to[bend right=20] node[left, align=right, font=\scriptsize]{\textbf{Mount / Execute}\\디스크 로드 + 3600\,s TTL} ([xshift=-1.1cm]hot.north);
+\draw[arr] ([xshift=1.1cm]hot.north) to[bend right=20] node[right, align=left, font=\scriptsize]{\textbf{Unmount / Evict}\\디스크 플러시 + 커널 종료} ([xshift=1.1cm]cold.south);
+\draw[arr] ([xshift=0.9cm]hot.south) .. controls +(0.15,-0.40) and +(-0.15,-0.40) .. node[below, font=\scriptsize]{SSE 브로드캐스트 · Presence (45\,s TTL)} ([xshift=-0.9cm]hot.south);
+\end{tikzpicture}
+\caption{\code{WorkspaceLifecycleManager}의 Redis \code{COLD $\leftrightarrow$ HOT} 상태 전이 모델. 워크스페이스 마운트 시 \code{cacheGeneration}이 증가하며 언마운트 시 안전하게 디스크로 플러시되고 해당 ZMQ 커널이 회수된다.}
+\label{fig:lifecycle}
+\end{figure}
+
+Fig.~\ref{fig:lifecycle}과 같이 \code{WorkspaceLifecycleManager}는 \code{proof:workspace:<id>:\{doc,meta,clients\}} 네임스페이스 키를 통해 워크스페이스를 \code{COLD}(디스크 저장)에서 \code{HOT}(Redis 캐시 마운트) 상태로 승격한다. 동시 편집 충돌이나 캐시 무효화를 식별하기 위해 단조 증가하는 \code{cacheGeneration} 카운터를 유지하며, 사용자가 워크스페이스 탭을 언마운트하면 최신 문서를 디스크 \code{NotebookStore}(\code{users/\allowbreak<uid>/\allowbreak notebooks} 및 \code{shared\_notebooks})에 플러시하고 연관 ZMQ 커널들을 즉시 종료한다. \code{NotebookStore}는 표준 \code{nbformat 4.5} 기반 \code{to\_ipynb}/\code{from\_ipynb} 직렬화와 \code{to\_lean\_source}(Markdown 및 Python 셀을 Lean 주석으로 감싸 단일 \code{.lean} 모듈로 내보내기)를 지원한다.
+
+\subsection{실시간 SSE 협업, Project-Agora 브리지 및 프론트엔드}
+다중 연구자의 동시 편집을 위해 \code{RealtimeNotebookHub}는 Server-Sent Events(SSE) 기반 pub/sub 채널과 45초 TTL 기반 현재 접속자(Presence) 추적을 제공한다. \code{AgoraBridge}는 \code{\_read\_agora\_be\_env}와 \code{\_detect\_agora\_ca\_cert}를 통해 동일 호스트 상의 IRADE/Agora 백엔드 \code{.env} 설정과 로컬 루트 CA 인증서를 자동 탐색하고, 이메일·MFA 로그인, JWT 연동 및 협업 캔버스(\code{notebook}/\code{text} 카드) 양방향 가져오기·내보내기(\code{httpx} 또는 선택적 \code{agora\_canvas.AgoraClient})를 수행한다.
+
+프론트엔드(\code{index.html}, \code{app.js}, \code{styles.css})는 VS Code의 Activity Bar, Explorer(Redis HOT/All Workspaces), Project-Agora Canvas Bridge, Symbols \& Magics 팔레트, 다중 탭 에디터 및 상태 바 레이아웃을 재현한다. 특히 \code{executeCellById}가 \code{POST /api/workspaces/<id>/execute}로부터 받은 InfoView HTML은 \code{mountInteractiveHtml}을 통해 동적 \code{<script>} 태그를 재주입·실행함으로써 커서 동기화 위젯이 브라우저 DOM 상에서 즉시 동작하도록 보장한다. 또한 \code{EventSource}(\code{ensureWorkspaceEventStream}), \code{\textbackslash 기호 + Tab} 유니코드 변환(\code{tryExpandBackslashUnicode}), \code{Shift+Tab} 심볼 팝오버(\code{triggerInspect}) 및 클라이언트 \LaTeX/Markdown 렌더러(\code{renderMarkdownHtml})를 제공한다.
+
+\section{검증 체계, 활용 예제 및 통합 현황 평가}
+
+\subsection{CLI 진단 도구 및 형식 증명 예제}
+설치 및 환경 자가 진단은 양 커널의 \code{install.py}가 담당한다. \code{lean4-kernel} CLI는 \code{install}, \code{build-repl}, \code{doctor}(실제 \code{\#eval 40 + 2} 실행 후 출력 \code{"42"} 검증), \code{uninstall}, \code{serve} 서브커맨드를 제공하며, \code{rocq-kernel} CLI는 \code{install}과 \code{doctor}(\code{Check nat.} 피드백 내 \code{"Set"} 포함 여부 검증)를 제공한다.
+
+저장소의 \code{examples/} 및 \code{notebooks/}에는 두 증명기의 상호작용을 시연하는 검증된 모듈이 포함되어 있다.
+\begin{itemize}
+  \item \code{examples/Arithmetic.lean}(23라인): 재귀 함수 \code{gaussSum}과 가우스 합 항등식 \code{gaussSum\_eq} ($2 \sum_{k=0}^{n} k = n(n+1)$)를 \code{sorry} 없이 \code{calc} 블록으로 증명하고 \code{\#print axioms gaussSum\_eq}로 공리 건전성을 검증한다.
+  \item \code{examples/Arithmetic.v}(43라인): \code{double}, \code{gauss\_sum} 정의와 함께 \code{plus\_O\_n}, 불릿(\code{-}) 기반 귀납법 \code{add\_0\_r} 및 \code{add\_assoc}를 \code{Admitted} 없이 증명하고 \code{Check add\_assoc.}을 실행한다.
+  \item \code{notebooks/lean4\_demo.ipynb}(15셀) 및 \code{notebooks/rocq\_demo.ipynb}(9셀): \code{\%load}, \code{\%tactic}, \code{\%undo}, InfoView 및 백트래킹 시나리오를 수록한 데모 노트북.
+\end{itemize}
+
+\subsection{자동화 테스트 스위트 및 샌드박스 검증 결과}
+테스트 스위트는 총 6개 파일, 30개 테스트 케이스(1,578라인)로 구성된다. 작업 공간이 기존 경로(\code{proof-notebook})에서 \code{notebook-kernel}로 이동한 환경에서는 \code{.venv/bin/pytest} 래퍼의 shebang 경로가 이전 디렉터리를 가리키므로 \code{PYTHONPATH=src .venv/bin/python3 -m pytest -v} 형태로 실행하였다. 현 세션에서 직접 실행·관측한 전체 결과는 \textbf{21 passed, 2 skipped, 7 failed (7.22\,s)}이며, 모듈별 세부 내역은 Table~\ref{tab:test_results}와 같다.
+
+\begin{table}[!t]
+\caption{자동화 테스트 스위트 실행 결과 (\code{PYTHONPATH=src .venv/bin/python3 -m \mbox{pytest -v}})}
+\label{tab:test_results}
+\centering
+\scriptsize
+\begin{tabularx}{\columnwidth}{@{}l@{\hspace{5pt}} c@{\hspace{4pt}} c@{\hspace{4pt}} c@{\hspace{6pt}} X@{}}
+\toprule
+\textbf{테스트 파일} & \textbf{통과} & \textbf{스킵} & \textbf{실패} & \textbf{범위 및 실패/스킵 사유} \\
+\midrule
+\code{test\_repl\_protocol.py} & 10 & 0 & 0 & Lean JSON 파싱, C stdout 분리, DAG, InfoView SSR (오프라인) \\
+\code{test\_rocq\_protocol.py} & 6 & 0 & 0 & Rocq XML 파싱, \code{tokenize\_sentences}, \code{MockRocqDriver}, InfoView \\
+\code{test\_rocq\_session.py} & 2 & 0 & 0 & 완성 검사 및 실제 \code{coqidetop} 라이브 세션 통합 검증 \\
+\code{test\_session\_and\_magics.py} & 2 & 1 & 0 & 유니코드·완결성 통과; 라이브 Lean 세션은 \code{PATH} 내 \code{lean} 부재로 스킵 \\
+\code{test\_notebook\_e2e.py} & 0 & 1 & 0 & \code{nbclient} E2E 실행 (\code{lean} 부재로 스킵) \\
+\code{test\_web\_platform.py} & 1 & 0 & 7 & \code{NotebookStore} 단위 통과; HTTPS 테스트 7건은 샌드박스 프록시가 루프백(\code{127.0.0.1})을 차단하여 \code{httpx.ProxyError: 400 Bad Request} 발생 \\
+\midrule
+\textbf{합계 (총 30건)} & \textbf{21} & \textbf{2} & \textbf{7} & 오프라인(16/16) 및 라이브 Rocq(2/2) 전량 통과 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+결과가 보여주듯 오프라인 프로토콜·토크나이저·세션 백트래킹 단위 테스트(16건)와 시스템에 설치된 \code{coqidetop} 기반의 라이브 Rocq 세션 통합 테스트(2건)는 오류 없이 통과하였다. 반면 웹 플랫폼 HTTP 통합 테스트 7건은 애플리케이션 로직 결함이 아닌 샌드박스 아웃바운드/루프백 프록시 환경에서 \code{httpx} 클라이언트가 \code{127.0.0.1} 트래픽을 프록시로 우회시키며 발생한 \code{ProxyError}에 기인한다.
+
+\subsection{관찰된 통합 한계 및 향후 개선 과제}
+코드 감사와 실행 검증을 통해 확인된 현재 아키텍처의 구체적 개선 과제는 다음과 같다.
+\begin{enumerate}
+  \item \textbf{Web Proof Studio UI 및 저장소의 Rocq 노출 보완:} 백엔드 \code{ProofKernelPool}은 이미 \code{"rocq"}/\code{"coq"} 언어를 \code{rocq\_kernel}로 정상 라우팅하나, 프론트엔드(\code{index.html}, \code{app.js})의 셀 추가 버튼·상태 배지(\code{Lean 4} / \code{Python} 이분 표시), \code{ProofKernelPool.complete}의 정적 키워드 폴백(\code{LEAN\_KEYWORDS} 고정 참조), 그리고 \code{NotebookStore}의 \code{list\_notebooks} 통계 및 \code{to\_lean\_source} 직렬화는 아직 Lean 4와 Python 중심으로 구현되어 있어 UI 차원의 Rocq 셀 선택자 및 \code{.v} 내보내기 확장이 필요하다.
+  \item \textbf{커널 간 공통 추상화 추출:} \code{lean4\_kernel/infoview.py}(1,260라인)과 \code{rocq\_kernel/infoview.py}(685라인), 그리고 두 \code{session.py}의 DAG 계보 추적·크래시 복구 코드는 상당 부분 대칭적 구조를 공유하므로, 증명기 중립적 공통 패키지(\code{proof\_kernel\_core})로 추출하면 유지보수 중복을 크게 줄일 수 있다.
+  \item \textbf{프록시·가상환경 경로 독립성 강화:} \code{test\_web\_platform.py} 등의 테스트 \code{httpx} 클라이언트에 \code{trust\_env=False}를 지정해 프록시 환경의 루프백 간섭을 배제하고, \code{.venv} 재배치 시에도 스크립트 shebang이 깨지지 않도록 editable 재설치를 표준화할 필요가 있다.
+\end{enumerate}
+
+\section{결론}
+본 기술 보고서에서는 Lean 4, Rocq(Coq), 그리고 Python 3를 하나의 대화형 연구 워크벤치로 통합한 \textit{Proof-Notebook}의 전체 아키텍처와 구현 세부를 IEEEtran 형식으로 기록하였다. Lean 4의 불변 \code{EnvNode} DAG 및 재귀 \code{InfoTree} 추출, Rocq의 \code{coqidetop} XML 프로토콜 드라이버 및 셀 원자적 \code{Edit\_at} 롤백, 그리고 TLS 1.2+ 웹 스튜디오·제로 의존성 RESP2 Redis HOT/COLD 생명주기·SSE 실시간 동기화는 정리 증명기의 엄밀성과 노트북 환경의 대화형 편의성을 양립시키는 견고한 기반을 형성한다. 오프라인 프로토콜 검증과 라이브 Rocq 세션 통합을 통해 핵심 상태 기계의 신뢰성이 확인되었으며, 향후 웹 UI 내 Rocq 셀 일급 지원 및 공통 InfoView/세션 추상화가 완료되면 진정한 의미의 범용 다중 증명기 협업 R\&D 플랫폼으로 완성될 것이다.
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\end{document}

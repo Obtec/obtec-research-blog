@@ -475,6 +475,15 @@ function renderCodeBlock(code: string, lang: string, key: string): React.ReactNo
 
 // Render bespoke dark-glass architecture diagrams from Mermaid blocks
 function renderMermaidDiagram(code: string, key: string): React.ReactNode {
+  if (code.includes('ProofNotebookHTTPServer') && code.includes('ProofKernelPool')) {
+    return renderProofNotebookArchitectureDiagram(key);
+  }
+  if (code.includes('LeanSession') && code.includes('Edit_at')) {
+    return renderProofNotebookBacktrackDiagram(key);
+  }
+  if (code.includes('WorkspaceLifecycleManager') && code.includes('COLD')) {
+    return renderProofNotebookLifecycleDiagram(key);
+  }
   if (code.includes('GravNet') && code.includes('Plummer')) {
     return renderGravNetPipelineDiagram(key);
   }
@@ -818,6 +827,350 @@ function renderGravNetPipelineDiagram(key: string): React.ReactNode {
 
       <figcaption className="pt-2 border-t border-white/10 text-xs sm:text-[13.5px] text-zinc-300 leading-relaxed font-ui">
         <strong>Figure 1:</strong> GravNet의 4단계 물리 추론 및 무역전파(Zero-BPTT) 조석 학습 아키텍처 개요도.
+      </figcaption>
+    </figure>
+  );
+}
+
+// Figure 1 (Proof-Notebook): 4-Layer Hybrid Architecture
+function renderProofNotebookArchitectureDiagram(key: string): React.ReactNode {
+  return (
+    <figure
+      key={key}
+      className="my-8 p-5 sm:p-6 rounded-2xl bg-zinc-950/90 border border-white/10 shadow-2xl space-y-4"
+    >
+      {/* Layer 1: Presentation */}
+      <div className="p-3.5 rounded-xl border border-dashed border-white/20 bg-zinc-900/50 space-y-2.5">
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-sky-300 font-ui">
+          Layer 1 · Presentation
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+          <div className="p-3 rounded-lg bg-sky-950/35 border border-sky-400/35 space-y-1">
+            <div className="font-semibold text-sky-200 font-ui">JupyterLab / nbclient / IDE</div>
+            <div className="text-zinc-300 text-[11px]">표준 Jupyter ZMQ 클라이언트</div>
+          </div>
+          <div className="md:col-span-2 p-3 rounded-lg bg-sky-950/35 border border-sky-400/35 space-y-1">
+            <div className="font-semibold text-sky-200 font-ui">
+              {renderInlineMathAndFormatting(
+                'VS Code 스타일 Web Proof Studio (`index.html`, `app.js`, `styles.css`)'
+              )}
+            </div>
+            <div className="text-zinc-300 text-[11px] leading-snug">
+              {renderInlineMathAndFormatting(
+                'Explorer · Editor Tabs · SSE Sync · InfoView (`mountInteractiveHtml`) · Agora Bridge'
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-center text-[11px] text-zinc-400 font-ui">
+        <div>
+          <span aria-hidden="true">↕ </span>ZMQ 채널
+        </div>
+        <div className="md:col-span-2">
+          <span aria-hidden="true">↕ </span>HTTPS / SSE 실시간 스트림
+        </div>
+      </div>
+
+      {/* Layer 2: Transport & Pool */}
+      <div className="p-3.5 rounded-xl border border-dashed border-white/20 bg-zinc-900/50 space-y-2.5">
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-teal-300 font-ui">
+          Layer 2 · Transport / Pool
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+          <div className="p-3 rounded-lg bg-teal-950/35 border border-teal-400/35 space-y-1">
+            <div className="font-semibold text-teal-200 font-ui">표준 Jupyter ZMQ 프로토콜</div>
+            <div className="text-zinc-300 text-[11px] font-mono">
+              ipykernel.kernelbase.Kernel
+            </div>
+          </div>
+          <div className="md:col-span-2 p-3 rounded-lg bg-teal-950/35 border border-teal-400/35 space-y-1">
+            <div className="font-semibold text-teal-200 font-ui">
+              {renderInlineMathAndFormatting(
+                'TLS 1.2+ HTTPS 서버 (`ProofNotebookHTTPServer` / `ProofStudioApp`)'
+              )}
+            </div>
+            <div className="text-zinc-300 text-[11px] leading-snug">
+              {renderInlineMathAndFormatting(
+                '`ProofKernelPool` (LRU $\\le 16$) · `WorkspaceLifecycleManager` · `RealtimeNotebookHub` (SSE)'
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-center text-[11px] text-zinc-400 font-ui">
+        <div>
+          <span aria-hidden="true">↓ </span>
+          {renderInlineMathAndFormatting('ZMQ / 라우팅 키 `lean4`')}
+        </div>
+        <div>
+          <span aria-hidden="true">↓ </span>
+          {renderInlineMathAndFormatting('라우팅 키 `rocq`')}
+        </div>
+        <div>
+          <span aria-hidden="true">↓ </span>
+          {renderInlineMathAndFormatting('라우팅 키 `python` · ↕ HOT/COLD')}
+        </div>
+      </div>
+
+      {/* Layer 3: Kernel Logic */}
+      <div className="p-3.5 rounded-xl border border-dashed border-white/20 bg-zinc-900/50 space-y-2.5">
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-amber-300 font-ui">
+          Layer 3 · Kernel Logic
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+          <div className="p-3 rounded-lg bg-amber-950/30 border border-amber-400/35 space-y-1">
+            <div className="font-semibold text-amber-200 font-ui">
+              {renderInlineMathAndFormatting('`lean4_kernel` (`Lean4Kernel`)')}
+            </div>
+            <div className="text-zinc-300 text-[11px]">
+              {renderInlineMathAndFormatting('`LeanSession` (DAG) · `infoview` · 17 Magics')}
+            </div>
+          </div>
+          <div className="p-3 rounded-lg bg-amber-950/30 border border-amber-400/35 space-y-1">
+            <div className="font-semibold text-amber-200 font-ui">
+              {renderInlineMathAndFormatting('`rocq_kernel` (`RocqKernel`)')}
+            </div>
+            <div className="text-zinc-300 text-[11px]">
+              {renderInlineMathAndFormatting('`RocqSession` (STM) · Tokenizer · 8 Magics')}
+            </div>
+          </div>
+          <div className="p-3 rounded-lg bg-amber-950/30 border border-amber-400/35 space-y-1">
+            <div className="font-semibold text-amber-200 font-ui">
+              {renderInlineMathAndFormatting('`ipykernel_launcher`')}
+            </div>
+            <div className="text-zinc-300 text-[11px]">Python 3 연산 커널</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Layer 4: Prover & State */}
+      <div className="p-3.5 rounded-xl border border-dashed border-white/20 bg-zinc-900/50 space-y-2.5">
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-emerald-300 font-ui">
+          Layer 4 · Prover &amp; State
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+          <div className="p-3 rounded-lg bg-zinc-900 border border-white/15 space-y-1">
+            <div className="text-[10.5px] text-zinc-400 font-mono">
+              <span aria-hidden="true">↕ </span>stdin / stdout
+            </div>
+            <div className="font-semibold text-zinc-100 font-ui">
+              {renderInlineMathAndFormatting('`REPLProcess` (`repl` / `lake env repl`)')}
+            </div>
+            <div className="text-zinc-300 text-[11px]">
+              {renderInlineMathAndFormatting('JSON + `\\n\\n` 프레이밍 (`v4.35.0`)')}
+            </div>
+          </div>
+          <div className="p-3 rounded-lg bg-zinc-900 border border-white/15 space-y-1">
+            <div className="text-[10.5px] text-zinc-400 font-mono">
+              <span aria-hidden="true">↕ </span>-main-channel stdfds
+            </div>
+            <div className="font-semibold text-zinc-100 font-ui">
+              {renderInlineMathAndFormatting('`RocqProcess` (`coqidetop.opt`)')}
+            </div>
+            <div className="text-zinc-300 text-[11px]">
+              {renderInlineMathAndFormatting('XML 프로토콜 + 5 ms 드레인')}
+            </div>
+          </div>
+          <div className="p-3 rounded-lg bg-emerald-950/30 border border-emerald-400/35 space-y-1">
+            <div className="text-[10.5px] text-emerald-300 font-ui">
+              <span aria-hidden="true">↕ </span>HOT / COLD 영속화 &amp; 브리지
+            </div>
+            <div className="font-semibold text-emerald-200 font-ui">
+              {renderInlineMathAndFormatting('`AgoraRedisClient` (HOT, 3600 s)')}
+            </div>
+            <div className="text-zinc-300 text-[11px] leading-snug">
+              {renderInlineMathAndFormatting(
+                '`NotebookStore` (Disk COLD) · `AgoraBridge` (HTTPX / Canvas)'
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <figcaption className="pt-2 border-t border-white/10 text-xs sm:text-[13.5px] text-zinc-300 leading-relaxed font-ui">
+        <strong>Figure 1:</strong> Proof-Notebook 4계층 하이브리드 아키텍처. 표준 Jupyter ZMQ 실행 경로와 HTTPS 기반 Web Proof Studio 경로가 동일한 커널 엔진(<code>lean4_kernel</code>, <code>rocq_kernel</code>, <code>ipykernel</code>)을 공유한다.
+      </figcaption>
+    </figure>
+  );
+}
+
+// Figure 2 (Proof-Notebook): Lean 4 DAG Auto-Backtracking vs. Rocq STM Atomic Rollback
+function renderProofNotebookBacktrackDiagram(key: string): React.ReactNode {
+  return (
+    <figure
+      key={key}
+      className="my-8 p-5 sm:p-6 rounded-2xl bg-zinc-950/90 border border-white/10 shadow-2xl space-y-5"
+    >
+      {/* Part (a): LeanSession EnvNode DAG */}
+      <div className="p-4 rounded-xl bg-zinc-900/80 border border-white/10 space-y-3">
+        <div className="text-xs font-semibold text-sky-200 font-ui">
+          {renderInlineMathAndFormatting(
+            '(a) `LeanSession`: `EnvNode` DAG 재선언 자동 백트래킹'
+          )}
+        </div>
+
+        {/* Superseded branch */}
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <div className="px-3 py-2 rounded-lg bg-sky-950/50 border border-sky-400/50 text-center">
+            <div className="font-semibold text-sky-200">{renderInlineMathAndFormatting('$e_0$')}</div>
+            <div className="text-[10.5px] text-zinc-300">Root</div>
+          </div>
+          <span className="text-zinc-400 text-[11px] font-mono" aria-hidden="true">
+            ┄┄→
+          </span>
+          <div className="px-3 py-2 rounded-lg bg-zinc-800/70 border border-dashed border-zinc-500/50 text-center opacity-75">
+            <div className="font-semibold text-zinc-200">{renderInlineMathAndFormatting('$e_1$')}</div>
+            <div className="text-[10.5px] text-zinc-400 font-mono">def f (구버전)</div>
+          </div>
+          <span className="text-zinc-400 text-[11px] font-mono" aria-hidden="true">
+            ┄┄→
+          </span>
+          <div className="px-3 py-2 rounded-lg bg-zinc-800/70 border border-dashed border-zinc-500/50 text-center opacity-75">
+            <div className="font-semibold text-zinc-200">{renderInlineMathAndFormatting('$e_2$')}</div>
+            <div className="text-[10.5px] text-zinc-400 font-mono">lem (충돌)</div>
+          </div>
+          <span className="ml-auto px-2 py-0.5 rounded bg-zinc-800 text-[10.5px] text-zinc-400 font-ui">
+            폐기된 기존 계보
+          </span>
+        </div>
+
+        {/* Replayed active branch */}
+        <div className="flex flex-wrap items-center gap-2 text-xs pl-4 sm:pl-10">
+          <span className="text-emerald-300 text-[11px] font-ui font-medium">
+            <span aria-hidden="true">↳ </span>재실행 분기 (from {renderInlineMathAndFormatting('$p_{v_j}=e_0$')})
+          </span>
+          <span className="text-emerald-300 font-mono" aria-hidden="true">
+            →
+          </span>
+          <div className="px-3 py-2 rounded-lg bg-emerald-950/40 border border-emerald-400/50 text-center">
+            <div className="font-semibold text-emerald-200">{renderInlineMathAndFormatting('$e_3$')}</div>
+            <div className="text-[10.5px] text-zinc-200 font-mono">def f&apos;</div>
+          </div>
+          <span className="text-emerald-300 font-mono" aria-hidden="true">
+            →
+          </span>
+          <div className="px-3 py-2 rounded-lg bg-emerald-950/40 border border-emerald-400/50 text-center">
+            <div className="font-semibold text-emerald-200">{renderInlineMathAndFormatting('$e_4$')}</div>
+            <div className="text-[10.5px] text-zinc-200 font-mono">replay lem</div>
+          </div>
+          <span className="ml-auto px-2 py-0.5 rounded bg-emerald-950/60 border border-emerald-400/30 text-[10.5px] text-emerald-200 font-ui">
+            새 활성 계보
+          </span>
+        </div>
+      </div>
+
+      {/* Part (b): RocqSession STM Rollback */}
+      <div className="p-4 rounded-xl bg-zinc-900/80 border border-white/10 space-y-3">
+        <div className="text-xs font-semibold text-amber-200 font-ui">
+          {renderInlineMathAndFormatting(
+            '(b) `RocqSession`: STM 셀 진입점 원자적 롤백 (`Edit_at`)'
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <div className="px-3 py-2 rounded-lg bg-sky-950/50 border border-sky-400/40 text-center">
+            <div className="font-semibold text-sky-200">{renderInlineMathAndFormatting('$s_0$')}</div>
+            <div className="text-[10.5px] text-zinc-300">Init</div>
+          </div>
+          <span className="text-zinc-400 font-mono" aria-hidden="true">
+            →
+          </span>
+          <div className="px-3 py-2 rounded-lg bg-sky-900/45 border border-sky-300/60 text-center">
+            <div className="font-semibold text-sky-100">{renderInlineMathAndFormatting('$s_1$')}</div>
+            <div className="text-[10.5px] text-sky-200">Cell Entry (복구 기준점)</div>
+          </div>
+          <span className="text-zinc-300 text-[10.5px] font-mono">
+            <span aria-hidden="true">→ </span>Add
+          </span>
+          <div className="px-3 py-2 rounded-lg bg-amber-950/45 border border-amber-400/45 text-center">
+            <div className="font-semibold text-amber-200">{renderInlineMathAndFormatting('$s_2$')}</div>
+            <div className="text-[10.5px] text-zinc-200">Sent. 1 OK</div>
+          </div>
+          <span className="text-zinc-300 text-[10.5px] font-mono">
+            <span aria-hidden="true">→ </span>Add
+          </span>
+          <div className="px-3 py-2 rounded-lg bg-rose-950/55 border border-rose-400/60 text-center">
+            <div className="font-semibold text-rose-200">{renderInlineMathAndFormatting('$s_3$')}</div>
+            <div className="text-[10.5px] text-rose-300">Sent. 2 Err</div>
+          </div>
+        </div>
+
+        <div className="p-2.5 rounded-lg bg-rose-950/30 border border-dashed border-rose-400/50 text-center text-[11.5px] text-rose-200 font-ui">
+          <span aria-hidden="true">↺ </span>
+          {renderInlineMathAndFormatting(
+            '`Edit_at`($s_1$) 원자적 롤백 (`rollback_whole_cell_on_error=True`): 부분 성공 문장 $s_2$ 잔여 상태 없이 $s_1$로 즉시 복귀'
+          )}
+        </div>
+      </div>
+
+      <figcaption className="pt-2 border-t border-white/10 text-xs sm:text-[13.5px] text-zinc-300 leading-relaxed font-ui">
+        <strong>Figure 2:</strong> 두 증명기 커널의 상태 백트래킹 비교. (a) Lean 4는 불변 환경 스냅샷 DAG에서 충돌 조상의 <code>parent_env</code>로 분기해 후손을 재실행하고, (b) Rocq는 셀 내부 부분 문장 실패 시 <code>Edit_at</code>으로{' '}
+        {renderInlineMathAndFormatting('셀 진입 STM 상태 ID($s_1$)까지 즉시 원상 복구한다.')}
+      </figcaption>
+    </figure>
+  );
+}
+
+// Figure 3 (Proof-Notebook): WorkspaceLifecycleManager Redis COLD <-> HOT State Transition
+function renderProofNotebookLifecycleDiagram(key: string): React.ReactNode {
+  return (
+    <figure
+      key={key}
+      className="my-8 p-5 sm:p-6 rounded-2xl bg-zinc-950/90 border border-white/10 shadow-2xl space-y-4"
+    >
+      <div className="grid grid-cols-1 md:grid-cols-11 gap-3 items-stretch text-xs">
+        {/* COLD State */}
+        <div className="md:col-span-4 p-4 rounded-xl bg-zinc-900 border border-white/15 flex flex-col justify-center space-y-1.5">
+          <div className="font-semibold text-zinc-100 text-[13px] font-ui">
+            COLD 상태 (디스크 영속화)
+          </div>
+          <div className="text-zinc-300 text-[11px] font-mono">users/&lt;uid&gt;/notebooks</div>
+          <div className="text-zinc-400 text-[11px] leading-snug">
+            JSON 저장 · 활성 ZMQ 커널 없음
+          </div>
+        </div>
+
+        {/* Bidirectional Transitions */}
+        <div className="md:col-span-3 flex flex-col justify-center gap-2 text-[11px] font-ui">
+          <div className="p-2.5 rounded-lg bg-emerald-950/35 border border-emerald-400/40 text-center space-y-0.5">
+            <div className="font-semibold text-emerald-200">
+              Mount / Execute <span aria-hidden="true">→</span>
+            </div>
+            <div className="text-zinc-300 text-[10.5px]">디스크 로드 + 3600 s TTL</div>
+          </div>
+          <div className="p-2.5 rounded-lg bg-amber-950/35 border border-amber-400/40 text-center space-y-0.5">
+            <div className="font-semibold text-amber-200">
+              <span aria-hidden="true">← </span>Unmount / Evict
+            </div>
+            <div className="text-zinc-300 text-[10.5px]">디스크 플러시 + 커널 종료</div>
+          </div>
+        </div>
+
+        {/* HOT State */}
+        <div className="md:col-span-4 p-4 rounded-xl bg-amber-950/30 border border-amber-400/45 flex flex-col justify-center space-y-1.5">
+          <div className="font-semibold text-amber-200 text-[13px] font-ui">
+            HOT 상태 (Redis + 실시간 협업)
+          </div>
+          <div className="text-zinc-200 text-[11px] font-mono break-all">
+            proof:workspace:&lt;id&gt;:&#123;doc,meta,clients&#125;
+          </div>
+          <div className="text-zinc-300 text-[11px] leading-snug">
+            {renderInlineMathAndFormatting('`cacheGeneration++` · LRU 커널 · SSE 활성화')}
+          </div>
+        </div>
+      </div>
+
+      {/* HOT Presence Loop */}
+      <div className="p-3 rounded-xl bg-sky-950/25 border border-dashed border-sky-400/45 text-center text-xs text-sky-200 font-ui">
+        <span aria-hidden="true">↺ </span>
+        SSE 브로드캐스트 · 실시간 접속자 Presence 유지 (45 s TTL)
+      </div>
+
+      <figcaption className="pt-2 border-t border-white/10 text-xs sm:text-[13.5px] text-zinc-300 leading-relaxed font-ui">
+        <strong>Figure 3:</strong> <code>WorkspaceLifecycleManager</code>의 Redis <code>COLD ↔ HOT</code> 상태 전이 모델. 워크스페이스 마운트 시 <code>cacheGeneration</code>이 증가하며 언마운트 시 안전하게 디스크로 플러시되고 해당 ZMQ 커널이 회수된다.
       </figcaption>
     </figure>
   );
